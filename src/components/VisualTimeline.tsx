@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { TimelineEvent, Character, Location, Book } from '../types';
+import { useTheme } from '../context/ThemeContext';
+import { useOutsideClick } from '../hooks/useOutsideClick';
 import {
   Clock,
   Plus,
@@ -11,17 +13,15 @@ import {
   Sparkles,
   Compass,
   Zap,
-  Filter,
   User,
-  MapPin,
   FileText,
   LayoutList,
   Columns,
-  Layers,
-  ChevronRight,
   BookOpen,
-  Calendar,
-  X
+  X,
+  Edit2,
+  Trash2,
+  Check
 } from 'lucide-react';
 
 interface VisualTimelineProps {
@@ -29,11 +29,13 @@ interface VisualTimelineProps {
   characters: Character[];
   locations: Location[];
   books: Book[];
-  selectedBookFilter: string; // 'all' | 'Trilogy Book 1' | 'Standalone A' | 'Trilogy Book 2' | 'Trilogy Book 3' | bookId
+  selectedBookFilter: string;
   onSelectBookFilter: (filter: string) => void;
   onSelectDoc?: (id: string) => void;
   onOpenEntityDetail?: (type: 'character' | 'location' | 'faction', id: string) => void;
   onCreateEvent?: () => void;
+  onUpdateEvent?: (updated: TimelineEvent) => void;
+  onDeleteEvent?: (id: string) => void;
   compactMode?: boolean;
 }
 
@@ -47,25 +49,37 @@ export const VisualTimeline: React.FC<VisualTimelineProps> = ({
   onSelectDoc,
   onOpenEntityDetail,
   onCreateEvent,
+  onUpdateEvent,
+  onDeleteEvent,
   compactMode = false
 }) => {
+  const { theme } = useTheme();
   const [orientation, setOrientation] = useState<'horizontal' | 'vertical'>('vertical');
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [importanceFilter, setImportanceFilter] = useState<string>('all');
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
-  // Map dropdown values to filter conditions
+  // Edit Event State
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [editTitle, setEditTitle] = useState<string>('');
+  const [editYear, setEditYear] = useState<number>(0);
+  const [editYearLabel, setEditYearLabel] = useState<string>('');
+  const [editEra, setEditEra] = useState<string>('First Era');
+  const [editSummary, setEditSummary] = useState<string>('');
+  const [editBookFilterTag, setEditBookFilterTag] = useState<string>('Trilogy Book 1');
+  const [editImportance, setEditImportance] = useState<TimelineEvent['importance']>('Major');
+
+  const editModalRef = useRef<HTMLDivElement>(null);
+  useOutsideClick(editModalRef, () => setIsEditing(false), isEditing);
+
   const filteredEvents = useMemo(() => {
     return timelineEvents
       .filter((evt) => {
-        // Book Filter Check
         let matchesBook = true;
         if (selectedBookFilter && selectedBookFilter !== 'all') {
           const filterLower = selectedBookFilter.toLowerCase();
           const evtTagLower = (evt.bookFilterTag || '').toLowerCase();
           const evtBookIdLower = (evt.bookId || '').toLowerCase();
 
-          // Find book title if ID was passed
           const matchedBookObj = books.find((b) => b.id === selectedBookFilter);
           const bookTitleLower = matchedBookObj ? matchedBookObj.title.toLowerCase() : '';
 
@@ -75,7 +89,6 @@ export const VisualTimeline: React.FC<VisualTimelineProps> = ({
             (bookTitleLower !== '' && bookTitleLower.includes(filterLower));
         }
 
-        // Search Filter Check
         const matchesSearch =
           searchTerm === '' ||
           evt.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -83,16 +96,11 @@ export const VisualTimeline: React.FC<VisualTimelineProps> = ({
           evt.era.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (evt.bookFilterTag && evt.bookFilterTag.toLowerCase().includes(searchTerm.toLowerCase()));
 
-        // Importance Filter Check
-        const matchesImportance =
-          importanceFilter === 'all' || evt.importance.toLowerCase() === importanceFilter.toLowerCase();
-
-        return matchesBook && matchesSearch && matchesImportance;
+        return matchesBook && matchesSearch;
       })
       .sort((a, b) => a.year - b.year);
-  }, [timelineEvents, selectedBookFilter, searchTerm, importanceFilter, books]);
+  }, [timelineEvents, selectedBookFilter, searchTerm, books]);
 
-  // Group events by Era for timeline markers
   const eraGroups = useMemo(() => {
     const groups: Record<string, TimelineEvent[]> = {};
     filteredEvents.forEach((evt) => {
@@ -119,76 +127,126 @@ export const VisualTimeline: React.FC<VisualTimelineProps> = ({
       case 'Magic Surge':
         return <Zap className="w-4 h-4 text-purple-400" />;
       default:
-        return <Sparkles className="w-4 h-4 text-amber-400" />;
+        return <Sparkles className="w-4 h-4 text-indigo-400" />;
     }
   };
 
   const selectedEvent = timelineEvents.find((e) => e.id === selectedEventId);
 
+  const startEditEvent = (evt: TimelineEvent) => {
+    setEditTitle(evt.title);
+    setEditYear(evt.year);
+    setEditYearLabel(evt.yearLabel || `Year ${evt.year}`);
+    setEditEra(evt.era || 'First Era');
+    setEditSummary(evt.summary);
+    setEditBookFilterTag(evt.bookFilterTag || 'Trilogy Book 1');
+    setEditImportance(evt.importance || 'Major');
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedEvent || !onUpdateEvent) return;
+
+    onUpdateEvent({
+      ...selectedEvent,
+      title: editTitle.trim(),
+      year: editYear,
+      yearLabel: editYearLabel.trim(),
+      era: editEra.trim(),
+      summary: editSummary.trim(),
+      bookFilterTag: editBookFilterTag,
+      importance: editImportance
+    });
+
+    setIsEditing(false);
+  };
+
+  const handleDeleteCurrentEvent = () => {
+    if (!selectedEventId || !onDeleteEvent) return;
+    if (confirm('Delete this timeline event permanently?')) {
+      onDeleteEvent(selectedEventId);
+      setSelectedEventId(null);
+      setIsEditing(false);
+    }
+  };
+
+  const isSepia = theme === 'sepia';
+  const isLight = theme === 'light';
+
+  const containerBg = isSepia
+    ? 'bg-[#fbf0d9] text-[#433422]'
+    : isLight
+    ? 'bg-[#f8fafc] text-[#0f172a]'
+    : 'bg-[#09090b] text-[#e4e4e7]';
+
+  const headerBg = isSepia
+    ? 'bg-[#f4e4bc] border-[#dcc090]'
+    : isLight
+    ? 'bg-[#f1f5f9] border-[#cbd5e1]'
+    : 'bg-[#0c0c0e] border-[#27272a]';
+
+  const cardBg = isSepia
+    ? 'bg-[#ebd4a2] border-[#dcc090]'
+    : isLight
+    ? 'bg-[#ffffff] border-[#cbd5e1]'
+    : 'bg-[#18181b] border-[#27272a]';
+
+  const accentColor = isSepia ? 'text-[#964b00]' : isLight ? 'text-indigo-600' : 'text-indigo-400';
+
   return (
-    <div className="flex-1 flex flex-col h-full min-h-0 bg-[#09090b] text-[#e4e4e7] overflow-hidden select-none">
+    <div className={`flex-1 flex flex-col h-full min-h-0 ${containerBg} overflow-hidden select-none`}>
       {/* Top Filter & Toolbar Bar */}
-      <div className="p-3 border-b border-[#27272a] bg-[#09090b]/90 backdrop-blur-md flex flex-wrap items-center justify-between gap-2 shrink-0">
+      <div className={`p-3 border-b ${headerBg} flex flex-wrap items-center justify-between gap-2 shrink-0`}>
         {/* Book Selection Dropdown */}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 bg-[#18181b] border border-[#27272a] rounded px-2 py-1 text-xs">
-            <BookOpen className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            <span className="text-[#71717a] font-medium hidden sm:inline">Book:</span>
+          <div className={`flex items-center gap-1.5 ${cardBg} rounded border px-2 py-1 text-xs`}>
+            <BookOpen className={`w-3.5 h-3.5 ${accentColor} shrink-0`} />
+            <span className="opacity-60 font-medium hidden sm:inline">Book:</span>
             <select
               value={selectedBookFilter}
               onChange={(e) => onSelectBookFilter(e.target.value)}
-              className="bg-transparent text-[#e4e4e7] font-semibold text-xs py-0.5 focus:outline-none cursor-pointer"
+              className="bg-transparent font-semibold text-xs py-0.5 focus:outline-none cursor-pointer"
             >
-              <option value="all" className="bg-[#09090b] text-[#e4e4e7]">
-                All Books
-              </option>
-              <option value="Trilogy Book 1" className="bg-[#09090b] text-[#e4e4e7]">
-                Trilogy Book 1
-              </option>
-              <option value="Standalone A" className="bg-[#09090b] text-[#e4e4e7]">
-                Standalone A
-              </option>
-              <option value="Trilogy Book 2" className="bg-[#09090b] text-[#e4e4e7]">
-                Trilogy Book 2
-              </option>
-              <option value="Trilogy Book 3" className="bg-[#09090b] text-[#e4e4e7]">
-                Trilogy Book 3
-              </option>
+              <option value="all">All Story Books</option>
+              <option value="Trilogy Book 1">Trilogy Book 1</option>
+              <option value="Standalone A">Standalone A</option>
+              <option value="Trilogy Book 2">Trilogy Book 2</option>
+              <option value="Trilogy Book 3">Trilogy Book 3</option>
             </select>
           </div>
 
           {/* Quick Search */}
           <div className="relative min-w-[140px] max-w-[200px]">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-[#71717a]" />
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 opacity-60" />
             <input
               type="text"
               placeholder="Search timeline..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-[#18181b] border border-[#27272a] text-xs pl-8 pr-2 py-1 rounded text-[#e4e4e7] placeholder-[#71717a] focus:outline-none focus:border-amber-500"
+              className={`w-full ${cardBg} border text-xs pl-8 pr-2 py-1 rounded focus:outline-none focus:border-indigo-500`}
             />
           </div>
         </div>
 
         {/* View Controls & Actions */}
         <div className="flex items-center gap-2">
-          {/* Orientation Switcher */}
-          <div className="flex items-center bg-[#18181b] p-0.5 rounded border border-[#27272a] text-xs">
+          <div className={`flex items-center ${cardBg} p-0.5 rounded border text-xs`}>
             <button
               onClick={() => setOrientation('vertical')}
               className={`p-1 rounded transition-colors ${
-                orientation === 'vertical' ? 'bg-[#09090b] text-amber-400 font-bold border border-[#27272a]' : 'text-[#71717a] hover:text-white'
+                orientation === 'vertical' ? `${containerBg} ${accentColor} font-bold border` : 'opacity-60 hover:opacity-100'
               }`}
-              title="Vertical Visual Timeline"
+              title="Vertical Worldbuilder Timeline"
             >
               <LayoutList className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setOrientation('horizontal')}
               className={`p-1 rounded transition-colors ${
-                orientation === 'horizontal' ? 'bg-[#09090b] text-amber-400 font-bold border border-[#27272a]' : 'text-[#71717a] hover:text-white'
+                orientation === 'horizontal' ? `${containerBg} ${accentColor} font-bold border` : 'opacity-60 hover:opacity-100'
               }`}
-              title="Horizontal Sequential Rail"
+              title="Horizontal Timeline Rail"
             >
               <Columns className="w-3.5 h-3.5" />
             </button>
@@ -197,7 +255,7 @@ export const VisualTimeline: React.FC<VisualTimelineProps> = ({
           {onCreateEvent && (
             <button
               onClick={onCreateEvent}
-              className="flex items-center gap-1 text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 px-2.5 py-1 rounded font-bold transition-all shadow"
+              className="flex items-center gap-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded font-bold transition-all shadow"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add Event</span>
@@ -209,18 +267,15 @@ export const VisualTimeline: React.FC<VisualTimelineProps> = ({
       {/* Main Timeline Plotting Canvas */}
       <div className="flex-1 min-h-0 relative overflow-hidden flex flex-col">
         {filteredEvents.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-[#71717a] space-y-2">
-            <Clock className="w-10 h-10 text-[#27272a]" />
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center opacity-60 space-y-2">
+            <Clock className="w-10 h-10 opacity-40" />
             <p className="text-xs">No timeline events found matching the selected book filter.</p>
           </div>
         ) : orientation === 'horizontal' ? (
-          /* ========================================================= */
-          /* 1. HORIZONTAL SEQUENTIAL TIMELINE TRACK                   */
-          /* ========================================================= */
+          /* HORIZONTAL TIMELINE TRACK */
           <div className="flex-1 overflow-x-auto overflow-y-hidden p-6 flex flex-col justify-center relative no-scrollbar">
             <div className="relative min-w-max flex items-center py-16 px-10 gap-12">
-              {/* Horizontal Connecting Spine Line */}
-              <div className="absolute left-0 right-0 top-1/2 h-1 bg-gradient-to-r from-amber-500/20 via-amber-500/60 to-indigo-500/30 rounded -translate-y-1/2 z-0" />
+              <div className="absolute left-0 right-0 top-1/2 h-1 bg-indigo-500/30 rounded -translate-y-1/2 z-0" />
 
               {filteredEvents.map((evt, idx) => {
                 const isSelected = evt.id === selectedEventId;
@@ -232,42 +287,39 @@ export const VisualTimeline: React.FC<VisualTimelineProps> = ({
                     onClick={() => setSelectedEventId(isSelected ? null : evt.id)}
                     className="relative flex flex-col items-center group cursor-pointer shrink-0 z-10 w-56"
                   >
-                    {/* Event Node Pin on Line */}
                     <div
                       className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
                         isSelected
-                          ? 'bg-amber-500 border-white scale-125 shadow-[0_0_15px_rgba(245,158,11,0.6)]'
-                          : 'bg-[#18181b] border-amber-500/80 group-hover:scale-110 group-hover:border-amber-400'
+                          ? 'bg-indigo-600 border-white scale-125 shadow-lg'
+                          : `${cardBg} border-indigo-500/80 group-hover:scale-110`
                       }`}
                     >
                       {getEventIcon(evt.eventType)}
                     </div>
 
-                    {/* Year Indicator Pill */}
-                    <span className="mt-2 text-[10px] font-mono font-bold text-amber-400 bg-[#18181b] px-2 py-0.5 rounded border border-[#27272a]">
+                    <span className={`mt-2 text-[10px] font-mono font-bold ${accentColor} ${cardBg} px-2 py-0.5 rounded border`}>
                       {evt.yearLabel || `Year ${evt.year}`}
                     </span>
 
-                    {/* Event Preview Card (Positioned Above or Below Line) */}
                     <div
                       className={`absolute w-56 p-3 rounded-xl border transition-all duration-300 ${
                         isTop ? 'bottom-16' : 'top-16'
                       } ${
                         isSelected
-                          ? 'bg-[#18181b] border-amber-500 shadow-xl ring-1 ring-amber-500/50'
-                          : 'bg-[#0c0c0e]/95 hover:bg-[#18181b] border-[#27272a] shadow-md'
+                          ? `${cardBg} border-indigo-500 shadow-xl ring-2 ring-indigo-500/50`
+                          : `${cardBg} shadow-md opacity-90 hover:opacity-100`
                       }`}
                     >
                       <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider bg-amber-950/60 px-1.5 py-0.2 rounded border border-amber-800/40 truncate">
+                        <span className={`text-[9px] font-bold ${accentColor} uppercase tracking-wider ${cardBg} px-1.5 py-0.2 rounded border truncate`}>
                           {evt.bookFilterTag || evt.era}
                         </span>
-                        <span className="text-[9px] text-[#71717a] font-medium">{evt.importance}</span>
+                        <span className="text-[9px] opacity-60 font-medium">{evt.importance}</span>
                       </div>
-                      <h4 className="font-bold text-xs text-white truncate group-hover:text-amber-400">
+                      <h4 className="font-bold text-xs truncate group-hover:text-indigo-500">
                         {evt.title}
                       </h4>
-                      <p className="text-[11px] text-[#a1a1aa] leading-snug line-clamp-2 mt-1">
+                      <p className="text-[11px] opacity-75 leading-snug line-clamp-2 mt-1">
                         {evt.summary}
                       </p>
                     </div>
@@ -277,24 +329,19 @@ export const VisualTimeline: React.FC<VisualTimelineProps> = ({
             </div>
           </div>
         ) : (
-          /* ========================================================= */
-          /* 2. VERTICAL CHRONOLOGICAL STREAM TIMELINE                 */
-          /* ========================================================= */
+          /* VERTICAL TIMELINE STREAM */
           <div className="flex-1 overflow-y-auto p-4 space-y-6 relative">
-            {/* Vertical Spine Line */}
-            <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-gradient-to-b from-amber-500/50 via-indigo-500/30 to-slate-800" />
+            <div className="absolute left-6 top-0 bottom-0 w-[2px] bg-indigo-500/30" />
 
             {Object.entries(eraGroups).map(([era, events]: [string, TimelineEvent[]]) => (
               <div key={era} className="space-y-3 relative z-10">
-                {/* Era Marker Badge */}
-                <div className="sticky top-0 z-20 flex items-center gap-2 bg-[#09090b]/95 py-1 backdrop-blur-md">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-[#18181b] border border-amber-500/30 px-2 py-0.5 rounded shadow-sm">
+                <div className={`sticky top-0 z-20 flex items-center gap-2 ${containerBg} py-1 backdrop-blur-md`}>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${accentColor} ${cardBg} border px-2 py-0.5 rounded shadow-sm`}>
                     {era}
                   </span>
-                  <div className="flex-1 h-[1px] bg-[#27272a]" />
+                  <div className="flex-1 h-[1px] opacity-20 bg-current" />
                 </div>
 
-                {/* Event Cards */}
                 <div className="space-y-3 ml-2">
                   {events.map((evt) => {
                     const isSelected = evt.id === selectedEventId;
@@ -305,16 +352,15 @@ export const VisualTimeline: React.FC<VisualTimelineProps> = ({
                         onClick={() => setSelectedEventId(isSelected ? null : evt.id)}
                         className={`group relative pl-8 p-3 rounded-xl border transition-all cursor-pointer ${
                           isSelected
-                            ? 'bg-[#18181b] border-amber-500 shadow-xl ring-1 ring-amber-500/40'
-                            : 'bg-[#0c0c0e] hover:bg-[#18181b] border-[#27272a]'
+                            ? `${cardBg} border-indigo-500 shadow-xl ring-2 ring-indigo-500/40`
+                            : `${cardBg} opacity-90 hover:opacity-100`
                         }`}
                       >
-                        {/* Node Dot on Line */}
                         <div
                           className={`absolute left-[-15px] top-4 w-4 h-4 rounded-full border-2 transition-transform group-hover:scale-110 flex items-center justify-center ${
                             isSelected
-                              ? 'bg-amber-500 border-white shadow-[0_0_10px_rgba(245,158,11,0.5)]'
-                              : 'bg-[#09090b] border-amber-500/80'
+                              ? 'bg-indigo-600 border-white shadow-md'
+                              : `${containerBg} border-indigo-500/80`
                           }`}
                         >
                           {getEventIcon(evt.eventType)}
@@ -322,24 +368,24 @@ export const VisualTimeline: React.FC<VisualTimelineProps> = ({
 
                         <div className="flex flex-wrap items-center justify-between gap-1 mb-1">
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <h4 className="font-bold text-xs md:text-sm text-white group-hover:text-amber-400 truncate">
+                            <h4 className="font-bold text-xs md:text-sm group-hover:text-indigo-500 truncate">
                               {evt.title}
                             </h4>
                           </div>
 
                           <div className="flex items-center gap-1.5">
                             {evt.bookFilterTag && (
-                              <span className="text-[9px] font-semibold text-amber-300 bg-amber-950/60 border border-amber-800/40 px-1.5 py-0.2 rounded">
+                              <span className={`text-[9px] font-semibold ${accentColor} ${cardBg} border px-1.5 py-0.2 rounded`}>
                                 {evt.bookFilterTag}
                               </span>
                             )}
-                            <span className="text-[10px] font-mono font-bold text-indigo-400 bg-[#18181b] px-2 py-0.5 rounded border border-[#27272a]">
+                            <span className={`text-[10px] font-mono font-bold ${accentColor} ${cardBg} px-2 py-0.5 rounded border`}>
                               {evt.yearLabel || `Year ${evt.year}`}
                             </span>
                           </div>
                         </div>
 
-                        <p className="text-[11px] text-[#a1a1aa] leading-relaxed mt-1">
+                        <p className="text-[11px] opacity-80 leading-relaxed mt-1">
                           {evt.summary}
                         </p>
                       </div>
@@ -352,39 +398,52 @@ export const VisualTimeline: React.FC<VisualTimelineProps> = ({
         )}
       </div>
 
-      {/* Selected Event Details Modal / Drawer */}
+      {/* Selected Event Details & Edit Action Bar */}
       {selectedEvent && (
-        <div className="p-4 bg-[#18181b] border-t border-[#27272a] space-y-3 shrink-0 z-30 shadow-2xl animate-in slide-in-from-bottom">
+        <div className={`p-4 ${headerBg} border-t space-y-3 shrink-0 z-30 shadow-2xl animate-in slide-in-from-bottom`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center">
+              <div className={`w-7 h-7 rounded-lg ${cardBg} border flex items-center justify-center`}>
                 {getEventIcon(selectedEvent.eventType)}
               </div>
               <div>
-                <h3 className="font-bold text-sm text-white">{selectedEvent.title}</h3>
-                <span className="text-[10px] text-amber-400 font-mono">
+                <h3 className="font-bold text-sm">{selectedEvent.title}</h3>
+                <span className={`text-[10px] ${accentColor} font-mono`}>
                   {selectedEvent.yearLabel} {selectedEvent.bookFilterTag ? `• ${selectedEvent.bookFilterTag}` : ''}
                 </span>
               </div>
             </div>
 
-            <button
-              onClick={() => setSelectedEventId(null)}
-              className="p-1 rounded text-[#71717a] hover:text-white hover:bg-[#27272a]"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              {onUpdateEvent && (
+                <button
+                  onClick={() => startEditEvent(selectedEvent)}
+                  className={`p-1.5 rounded ${cardBg} border text-xs font-bold flex items-center gap-1 hover:text-indigo-500`}
+                  title="Edit Event Details"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                  <span>Edit</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => setSelectedEventId(null)}
+                className="p-1 rounded opacity-70 hover:opacity-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
-          <p className="text-xs text-[#e4e4e7] leading-relaxed bg-[#09090b] p-3 rounded-lg border border-[#27272a]">
+          <p className={`text-xs leading-relaxed ${cardBg} p-3 rounded-lg border`}>
             {selectedEvent.summary}
           </p>
 
           {/* Involved Characters */}
           {selectedEvent.characterIds && selectedEvent.characterIds.length > 0 && (
             <div className="space-y-1">
-              <span className="text-[10px] font-bold text-[#71717a] uppercase tracking-wider flex items-center gap-1">
-                <User className="w-3 h-3 text-amber-400" />
+              <span className="text-[10px] font-bold opacity-60 uppercase tracking-wider flex items-center gap-1">
+                <User className={`w-3 h-3 ${accentColor}`} />
                 Involved Characters
               </span>
               <div className="flex flex-wrap gap-1.5">
@@ -395,7 +454,7 @@ export const VisualTimeline: React.FC<VisualTimelineProps> = ({
                     <button
                       key={cid}
                       onClick={() => onOpenEntityDetail && onOpenEntityDetail('character', cid)}
-                      className="bg-[#09090b] hover:bg-amber-500/20 text-amber-300 hover:text-amber-200 border border-amber-500/30 px-2 py-0.5 rounded text-[11px] font-medium transition-colors"
+                      className={`${cardBg} border border-indigo-500/30 px-2 py-0.5 rounded text-[11px] font-medium transition-colors hover:border-indigo-500`}
                     >
                       👤 {charObj.name}
                     </button>
@@ -408,12 +467,127 @@ export const VisualTimeline: React.FC<VisualTimelineProps> = ({
           {selectedEvent.markdownNoteId && onSelectDoc && (
             <button
               onClick={() => onSelectDoc(selectedEvent.markdownNoteId!)}
-              className="w-full py-1.5 px-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded text-xs flex items-center justify-center gap-2 transition-colors shadow"
+              className="w-full py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded text-xs flex items-center justify-center gap-2 transition-colors shadow"
             >
               <FileText className="w-4 h-4" />
-              <span>Open Associated Note</span>
+              <span>Open Worldbuilder Note</span>
             </button>
           )}
+        </div>
+      )}
+
+      {/* Edit Event Modal */}
+      {isEditing && selectedEvent && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div ref={editModalRef} className={`w-full max-w-lg ${headerBg} border rounded-2xl p-4 space-y-4 shadow-2xl`}>
+            <div className="flex items-center justify-between border-b pb-2">
+              <h3 className="font-bold text-sm flex items-center gap-2">
+                <Edit2 className={`w-4 h-4 ${accentColor}`} />
+                <span>Edit Timeline Event</span>
+              </h3>
+              <button onClick={() => setIsEditing(false)} className="p-1 rounded opacity-70 hover:opacity-100">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold block mb-1">Event Title</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none focus:border-indigo-500`}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-bold block mb-1">Year (Numeric)</label>
+                  <input
+                    type="number"
+                    value={editYear}
+                    onChange={(e) => setEditYear(Number(e.target.value))}
+                    className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none focus:border-indigo-500`}
+                  />
+                </div>
+                <div>
+                  <label className="font-bold block mb-1">Year Label</label>
+                  <input
+                    type="text"
+                    value={editYearLabel}
+                    onChange={(e) => setEditYearLabel(e.target.value)}
+                    className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none focus:border-indigo-500`}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-bold block mb-1">Book / Filter Tag</label>
+                  <select
+                    value={editBookFilterTag}
+                    onChange={(e) => setEditBookFilterTag(e.target.value)}
+                    className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none`}
+                  >
+                    <option value="Trilogy Book 1">Trilogy Book 1</option>
+                    <option value="Standalone A">Standalone A</option>
+                    <option value="Trilogy Book 2">Trilogy Book 2</option>
+                    <option value="Trilogy Book 3">Trilogy Book 3</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-bold block mb-1">Era</label>
+                  <input
+                    type="text"
+                    value={editEra}
+                    onChange={(e) => setEditEra(e.target.value)}
+                    className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none focus:border-indigo-500`}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold block mb-1">Description / Summary</label>
+                <textarea
+                  value={editSummary}
+                  onChange={(e) => setEditSummary(e.target.value)}
+                  rows={3}
+                  className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none focus:border-indigo-500 leading-relaxed`}
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                {onDeleteEvent && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteCurrentEvent}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border border-rose-800/50 rounded-lg font-bold"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Event</span>
+                  </button>
+                )}
+
+                <div className="flex items-center gap-2 ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(false)}
+                    className="px-3 py-1.5 opacity-70 hover:opacity-100"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

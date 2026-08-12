@@ -4,6 +4,7 @@ import { ResponsiveShell } from './components/ResponsiveShell';
 import { QuickSearchModal } from './components/QuickSearchModal';
 import { EntityDetailModal } from './components/EntityDetailModal';
 import { CreateEntityModal } from './components/CreateEntityModal';
+import { ProjectManagerModal } from './components/ProjectManagerModal';
 
 import {
   Character,
@@ -37,6 +38,7 @@ import {
 
 import { initPWA } from './lib/pwa';
 import { LoreProvider } from './context/LoreContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 export default function App() {
   // Initialize PWA Service Worker registration
@@ -77,12 +79,13 @@ export default function App() {
       });
   }, []);
 
-  // Sidebar Toggles for Header controls
+  // Sidebar Toggles
   const [leftSidebarOpen, setLeftSidebarOpen] = useState<boolean>(true);
   const [rightSidebarOpen, setRightSidebarOpen] = useState<boolean>(false);
 
   // Modals state
   const [searchOpen, setSearchOpen] = useState<boolean>(false);
+  const [projectManagerOpen, setProjectManagerOpen] = useState<boolean>(false);
 
   // Entity Detail Modal state
   const [inspectType, setInspectType] = useState<'character' | 'location' | 'faction' | null>(null);
@@ -97,7 +100,39 @@ export default function App() {
     saveSettings(newSettings);
   };
 
-  // Refresh data from local storage & IndexedDB
+  // Project / Book Management Handlers
+  const handleCreateBook = (title: string, description: string) => {
+    const newBookId = `book-${Date.now()}`;
+    const newBook: Book = {
+      id: newBookId,
+      title,
+      subtitle: description,
+      order: books.length + 1,
+      status: 'Drafting',
+      summary: description,
+      yearRange: 'Current Era',
+      volumeNumber: books.length + 1,
+      wordCountGoal: 80000,
+      currentWordCount: 0,
+      description
+    };
+
+    const nextBooks = [...books, newBook];
+    setBooks(nextBooks);
+    saveBooks(nextBooks);
+    setSelectedBookId(newBookId);
+  };
+
+  const handleDeleteBook = (idToDelete: string) => {
+    const nextBooks = books.filter((b) => b.id !== idToDelete);
+    setBooks(nextBooks);
+    saveBooks(nextBooks);
+    if (selectedBookId === idToDelete) {
+      setSelectedBookId('all');
+    }
+  };
+
+  // Refresh data
   const handleRefreshData = () => {
     idbLoadAllData()
       .then((data) => {
@@ -194,6 +229,18 @@ export default function App() {
     saveTimeline(nextTime);
   };
 
+  const handleUpdateTimelineEvent = (updatedEvt: TimelineEvent) => {
+    const nextTime = timeline.map((e) => (e.id === updatedEvt.id ? updatedEvt : e));
+    setTimeline(nextTime);
+    saveTimeline(nextTime);
+  };
+
+  const handleDeleteTimelineEvent = (idToDelete: string) => {
+    const nextTime = timeline.filter((e) => e.id !== idToDelete);
+    setTimeline(nextTime);
+    saveTimeline(nextTime);
+  };
+
   // Entity updates / deletes
   const handleUpdateCharacter = (updated: Character) => {
     const nextChars = characters.map((c) => (c.id === updated.id ? updated : c));
@@ -230,103 +277,119 @@ export default function App() {
   };
 
   return (
-    <LoreProvider>
-      <div className="flex flex-col h-screen w-screen bg-[#0c0c0e] font-sans text-[#e4e4e7] overflow-hidden select-none">
-        {/* App Header */}
-        <Header
-          settings={settings}
-          onUpdateSettings={handleUpdateSettings}
-          books={books}
-          selectedBookId={selectedBookId}
-          onSelectBookId={setSelectedBookId}
-          onOpenSearch={() => setSearchOpen(true)}
-          leftSidebarOpen={leftSidebarOpen}
-          onToggleLeftSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
-          rightSidebarOpen={rightSidebarOpen}
-          onToggleRightSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
-          onRefreshData={handleRefreshData}
-          onNewDoc={handleNewDoc}
-        />
+    <ThemeProvider>
+      <LoreProvider>
+        <div className="flex flex-col h-screen w-screen font-sans overflow-hidden select-none">
+          {/* App Header */}
+          <Header
+            settings={settings}
+            onUpdateSettings={handleUpdateSettings}
+            books={books}
+            selectedBookId={selectedBookId}
+            onSelectBookId={setSelectedBookId}
+            onOpenProjectManager={() => setProjectManagerOpen(true)}
+            onOpenSearch={() => setSearchOpen(true)}
+            leftSidebarOpen={leftSidebarOpen}
+            onToggleLeftSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
+            rightSidebarOpen={rightSidebarOpen}
+            onToggleRightSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
+            onRefreshData={handleRefreshData}
+            onNewDoc={handleNewDoc}
+          />
 
-        {/* Main Responsive Shell Layout */}
-        <ResponsiveShell
-          settings={settings}
-          books={books}
-          characters={characters}
-          locations={locations}
-          factions={factions}
-          timeline={timeline}
-          docs={docs}
-          selectedBookId={selectedBookId}
-          activeDocId={activeDocId}
-          openDocIds={openDocIds}
-          leftSidebarOpen={leftSidebarOpen}
-          rightSidebarOpen={rightSidebarOpen}
-          onSelectDoc={handleSelectDoc}
-          onCloseDocTab={handleCloseDocTab}
-          onNewDoc={handleNewDoc}
-          onUpdateDoc={handleUpdateDoc}
-          onSelectBookId={setSelectedBookId}
-          onOpenEntityDetail={(type, id) => {
-            setInspectType(type);
-            setInspectId(id);
-          }}
-          onCreateEntity={(type) => setCreateMode(type)}
-          onRefreshData={handleRefreshData}
-        />
+          {/* Main Responsive Shell Layout */}
+          <ResponsiveShell
+            settings={settings}
+            books={books}
+            characters={characters}
+            locations={locations}
+            factions={factions}
+            timeline={timeline}
+            docs={docs}
+            selectedBookId={selectedBookId}
+            activeDocId={activeDocId}
+            openDocIds={openDocIds}
+            leftSidebarOpen={leftSidebarOpen}
+            rightSidebarOpen={rightSidebarOpen}
+            onSelectDoc={handleSelectDoc}
+            onCloseDocTab={handleCloseDocTab}
+            onNewDoc={handleNewDoc}
+            onUpdateDoc={handleUpdateDoc}
+            onSelectBookId={setSelectedBookId}
+            onOpenEntityDetail={(type, id) => {
+              setInspectType(type);
+              setInspectId(id);
+            }}
+            onCreateEntity={(type) => setCreateMode(type)}
+            onUpdateTimelineEvent={handleUpdateTimelineEvent}
+            onDeleteTimelineEvent={handleDeleteTimelineEvent}
+            onRefreshData={handleRefreshData}
+          />
 
-        {/* Global Quick Search Modal */}
-        <QuickSearchModal
-          isOpen={searchOpen}
-          onClose={() => setSearchOpen(false)}
-          characters={characters}
-          locations={locations}
-          factions={factions}
-          timeline={timeline}
-          docs={docs}
-          onSelectDoc={handleSelectDoc}
-          onOpenEntityDetail={(type, id) => {
-            setInspectType(type);
-            setInspectId(id);
-          }}
-        />
+          {/* Project Manager Modal */}
+          <ProjectManagerModal
+            isOpen={projectManagerOpen}
+            onClose={() => setProjectManagerOpen(false)}
+            books={books}
+            selectedBookId={selectedBookId}
+            onSelectBook={setSelectedBookId}
+            onCreateBook={handleCreateBook}
+            onDeleteBook={handleDeleteBook}
+          />
 
-        {/* Entity Inspector & Detail Modal */}
-        <EntityDetailModal
-          type={inspectType}
-          entityId={inspectId}
-          isOpen={inspectType !== null}
-          onClose={() => {
-            setInspectType(null);
-            setInspectId(null);
-          }}
-          characters={characters}
-          locations={locations}
-          factions={factions}
-          books={books}
-          docs={docs}
-          onUpdateCharacter={handleUpdateCharacter}
-          onUpdateLocation={handleUpdateLocation}
-          onUpdateFaction={handleUpdateFaction}
-          onDeleteEntity={handleDeleteEntity}
-          onSelectDoc={handleSelectDoc}
-        />
+          {/* Global Quick Search Modal */}
+          <QuickSearchModal
+            isOpen={searchOpen}
+            onClose={() => setSearchOpen(false)}
+            characters={characters}
+            locations={locations}
+            factions={factions}
+            timeline={timeline}
+            docs={docs}
+            onSelectDoc={handleSelectDoc}
+            onOpenEntityDetail={(type, id) => {
+              setInspectType(type);
+              setInspectId(id);
+            }}
+          />
 
-        {/* Entity Creation Modal */}
-        <CreateEntityModal
-          mode={createMode}
-          isOpen={createMode !== null}
-          onClose={() => setCreateMode(null)}
-          books={books}
-          factions={factions}
-          locations={locations}
-          characters={characters}
-          onCreateCharacter={handleCreateCharacter}
-          onCreateLocation={handleCreateLocation}
-          onCreateFaction={handleCreateFaction}
-          onCreateTimelineEvent={handleCreateTimelineEvent}
-        />
-      </div>
-    </LoreProvider>
+          {/* Entity Inspector & Detail Modal */}
+          <EntityDetailModal
+            type={inspectType}
+            entityId={inspectId}
+            isOpen={inspectType !== null}
+            onClose={() => {
+              setInspectType(null);
+              setInspectId(null);
+            }}
+            characters={characters}
+            locations={locations}
+            factions={factions}
+            books={books}
+            docs={docs}
+            onUpdateCharacter={handleUpdateCharacter}
+            onUpdateLocation={handleUpdateLocation}
+            onUpdateFaction={handleUpdateFaction}
+            onDeleteEntity={handleDeleteEntity}
+            onSelectDoc={handleSelectDoc}
+          />
+
+          {/* Entity Creation Modal */}
+          <CreateEntityModal
+            mode={createMode}
+            isOpen={createMode !== null}
+            onClose={() => setCreateMode(null)}
+            books={books}
+            factions={factions}
+            locations={locations}
+            characters={characters}
+            onCreateCharacter={handleCreateCharacter}
+            onCreateLocation={handleCreateLocation}
+            onCreateFaction={handleCreateFaction}
+            onCreateTimelineEvent={handleCreateTimelineEvent}
+          />
+        </div>
+      </LoreProvider>
+    </ThemeProvider>
   );
 }

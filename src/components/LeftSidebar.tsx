@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Character, Location, Faction, MarkdownDoc, Book } from '../types';
 import { useLoreContext } from '../context/LoreContext';
+import { useTheme } from '../context/ThemeContext';
 import {
   Users,
   MapPin,
@@ -43,14 +44,13 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   isOpen,
   onToggleMatrixView
 }) => {
+  const { theme } = useTheme();
   const { toggleMatrixView } = useLoreContext();
   const [activeTab, setActiveTab] = useState<'docs' | 'characters' | 'locations' | 'factions'>('docs');
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
 
   if (!isOpen) return null;
 
-  // Filter items
   const filteredDocs = docs.filter((d) => {
     return (
       d.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -65,8 +65,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.traits.some((t) => t.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesRole = roleFilter === 'all' || c.role.toLowerCase() === roleFilter.toLowerCase();
-    return matchesBook && matchesSearch && matchesRole;
+    return matchesBook && matchesSearch;
   });
 
   const filteredLocations = locations.filter((l) => {
@@ -86,14 +85,37 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     );
   });
 
+  const isSepia = theme === 'sepia';
+  const isLight = theme === 'light';
+
+  const sidebarBg = isSepia
+    ? 'bg-[#f4e4bc] border-[#dcc090] text-[#433422]'
+    : isLight
+    ? 'bg-[#f1f5f9] border-[#cbd5e1] text-[#0f172a]'
+    : 'bg-[#09090b] border-[#27272a] text-[#e4e4e7]';
+
+  const cardBg = isSepia
+    ? 'bg-[#ebd4a2] border-[#dcc090]'
+    : isLight
+    ? 'bg-[#ffffff] border-[#cbd5e1]'
+    : 'bg-[#18181b] border-[#27272a]';
+
+  const activeCardBg = isSepia
+    ? 'bg-[#fbf0d9] border-[#cbb080] font-bold shadow-sm'
+    : isLight
+    ? 'bg-[#ffffff] border-indigo-500 font-bold shadow-sm'
+    : 'bg-[#18181b] border-indigo-500 font-bold shadow-sm';
+
+  const accentColor = isSepia ? 'text-[#964b00]' : isLight ? 'text-indigo-600' : 'text-indigo-400';
+
   return (
-    <aside className="w-64 md:w-72 bg-[#09090b] border-r border-[#27272a] flex flex-col h-full shrink-0 z-20 text-[#e4e4e7] select-none">
+    <aside className={`w-64 md:w-72 ${sidebarBg} border-r flex flex-col h-full shrink-0 z-20 select-none`}>
       {/* Sidebar Header */}
-      <div className="p-3 border-b border-[#27272a] space-y-2.5 bg-[#09090b]">
+      <div className={`p-3 border-b space-y-2.5 ${sidebarBg}`}>
         <div className="flex items-center justify-between gap-1">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-[#71717a] flex items-center gap-1.5 shrink-0">
-            <Feather className="w-3.5 h-3.5 text-indigo-400" />
-            Manuscript & Reference
+          <span className="text-[10px] uppercase font-bold tracking-wider opacity-60 flex items-center gap-1.5 shrink-0">
+            <Feather className={`w-3.5 h-3.5 ${accentColor}`} />
+            Manuscript & Worldbuilder
           </span>
 
           <button
@@ -101,24 +123,22 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               if (onToggleMatrixView) onToggleMatrixView();
               else toggleMatrixView();
             }}
-            className="hidden md:flex items-center gap-1 text-[10px] bg-indigo-950/70 hover:bg-indigo-900 text-indigo-300 border border-indigo-500/40 px-2 py-0.5 rounded transition-all font-semibold shadow-sm"
-            title="Open Relationship Matrix Canvas (PC Only)"
+            className={`hidden md:flex items-center gap-1 text-[10px] ${cardBg} border px-2 py-0.5 rounded transition-all font-semibold shadow-sm`}
+            title="Open Worldbuilder Matrix Canvas (PC Only)"
           >
-            <Layers className="w-3 h-3 text-indigo-400" />
+            <Layers className={`w-3 h-3 ${accentColor}`} />
             <span>Matrix</span>
           </button>
         </div>
 
-        {/* Tab Selection: Manuscript Chapters First */}
-        <div className="grid grid-cols-4 bg-[#18181b] p-0.5 rounded border border-[#27272a] text-xs">
+        {/* Tab Selection */}
+        <div className={`grid grid-cols-4 ${cardBg} p-0.5 rounded border text-xs`}>
           <button
             onClick={() => setActiveTab('docs')}
             className={`py-1 px-1 rounded flex flex-col items-center gap-0.5 font-medium transition-all ${
-              activeTab === 'docs'
-                ? 'bg-[#09090b] text-indigo-400 shadow-sm border border-[#27272a]'
-                : 'text-[#71717a] hover:text-[#e4e4e7]'
+              activeTab === 'docs' ? `${activeCardBg} ${accentColor}` : 'opacity-60 hover:opacity-100'
             }`}
-            title="Manuscript Chapters & Writing Notes"
+            title="Manuscript Chapters & Notes"
           >
             <FileText className="w-3.5 h-3.5" />
             <span className="text-[10px] font-bold">Chapters</span>
@@ -127,11 +147,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           <button
             onClick={() => setActiveTab('characters')}
             className={`py-1 px-1 rounded flex flex-col items-center gap-0.5 font-medium transition-all ${
-              activeTab === 'characters'
-                ? 'bg-[#09090b] text-indigo-400 shadow-sm border border-[#27272a]'
-                : 'text-[#71717a] hover:text-[#e4e4e7]'
+              activeTab === 'characters' ? `${activeCardBg} ${accentColor}` : 'opacity-60 hover:opacity-100'
             }`}
-            title="Characters Story Bible"
+            title="Worldbuilder Characters"
           >
             <Users className="w-3.5 h-3.5" />
             <span className="text-[10px]">People</span>
@@ -140,11 +158,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           <button
             onClick={() => setActiveTab('locations')}
             className={`py-1 px-1 rounded flex flex-col items-center gap-0.5 font-medium transition-all ${
-              activeTab === 'locations'
-                ? 'bg-[#09090b] text-indigo-400 shadow-sm border border-[#27272a]'
-                : 'text-[#71717a] hover:text-[#e4e4e7]'
+              activeTab === 'locations' ? `${activeCardBg} ${accentColor}` : 'opacity-60 hover:opacity-100'
             }`}
-            title="Locations & Setting Atlas"
+            title="Worldbuilder Places & Settings"
           >
             <MapPin className="w-3.5 h-3.5" />
             <span className="text-[10px]">Places</span>
@@ -153,33 +169,31 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           <button
             onClick={() => setActiveTab('factions')}
             className={`py-1 px-1 rounded flex flex-col items-center gap-0.5 font-medium transition-all ${
-              activeTab === 'factions'
-                ? 'bg-[#09090b] text-indigo-400 shadow-sm border border-[#27272a]'
-                : 'text-[#71717a] hover:text-[#e4e4e7]'
+              activeTab === 'factions' ? `${activeCardBg} ${accentColor}` : 'opacity-60 hover:opacity-100'
             }`}
-            title="Factions & Groups"
+            title="Worldbuilder Factions & Groups"
           >
             <Shield className="w-3.5 h-3.5" />
             <span className="text-[10px]">Factions</span>
           </button>
         </div>
 
-        {/* Filter Input */}
+        {/* Search Input */}
         <div className="relative">
-          <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-[#71717a]" />
+          <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 opacity-60" />
           <input
             type="text"
             placeholder={`Search ${activeTab === 'docs' ? 'chapters' : activeTab}...`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-[#18181b] border border-[#27272a] text-xs pl-8 pr-3 py-1.5 rounded text-[#e4e4e7] placeholder-[#71717a] focus:outline-none focus:border-indigo-500"
+            className={`w-full ${cardBg} border text-xs pl-8 pr-3 py-1.5 rounded focus:outline-none focus:border-indigo-500`}
           />
         </div>
       </div>
 
       {/* Tab Content List */}
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-        {/* MANUSCRIPT CHAPTERS LIST */}
+        {/* MANUSCRIPT CHAPTERS */}
         {activeTab === 'docs' && (
           <>
             {filteredDocs.map((d) => (
@@ -188,19 +202,15 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 onClick={() => onSelectDoc(d.id)}
                 className={`p-2.5 rounded-lg border transition-all cursor-pointer flex items-start gap-2.5 ${
                   activeDocId === d.id
-                    ? 'bg-[#18181b] border-l-4 border-l-indigo-500 border-[#27272a] text-white shadow-sm font-medium'
-                    : 'bg-[#09090b] hover:bg-[#18181b] border-[#27272a] text-[#a1a1aa]'
+                    ? `${activeCardBg} border-l-4 border-l-indigo-500`
+                    : `${cardBg} opacity-80 hover:opacity-100`
                 }`}
               >
-                <FileText
-                  className={`w-4 h-4 shrink-0 mt-0.5 ${
-                    activeDocId === d.id ? 'text-indigo-400' : 'text-[#71717a]'
-                  }`}
-                />
+                <FileText className={`w-4 h-4 shrink-0 mt-0.5 ${activeDocId === d.id ? accentColor : 'opacity-60'}`} />
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-xs text-white truncate">{d.title}</h4>
-                  <div className="flex items-center justify-between mt-1 text-[10px] text-[#71717a]">
-                    <span className="bg-[#18181b] px-1.5 py-0.2 rounded border border-[#27272a] truncate max-w-[90px]">
+                  <h4 className="font-semibold text-xs truncate">{d.title}</h4>
+                  <div className="flex items-center justify-between mt-1 text-[10px] opacity-70">
+                    <span className={`${cardBg} px-1.5 py-0.2 rounded border truncate max-w-[90px]`}>
                       {d.category}
                     </span>
                     <span>{d.wordCount || 0} words</span>
@@ -211,14 +221,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           </>
         )}
 
-        {/* CHARACTERS STORY BIBLE LIST */}
+        {/* WORLDBUILDER CHARACTERS */}
         {activeTab === 'characters' && (
           <>
             {filteredCharacters.map((c) => (
               <div
                 key={c.id}
                 onClick={() => onOpenEntityDetail('character', c.id)}
-                className="group p-2 bg-[#09090b] hover:bg-[#18181b] border border-[#27272a] rounded-lg transition-all cursor-pointer"
+                className={`group p-2 ${cardBg} border rounded-lg transition-all cursor-pointer hover:border-indigo-500/50`}
               >
                 <div className="flex items-center gap-2">
                   {c.avatarUrl ? (
@@ -226,19 +236,19 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       src={c.avatarUrl}
                       alt={c.name}
                       referrerPolicy="no-referrer"
-                      className="w-8 h-8 rounded object-cover shrink-0 border border-[#27272a]"
+                      className="w-8 h-8 rounded object-cover shrink-0 border"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded bg-[#18181b] border border-[#27272a] flex items-center justify-center text-amber-400 font-bold shrink-0 text-xs">
+                    <div className={`w-8 h-8 rounded ${cardBg} border flex items-center justify-center ${accentColor} font-bold shrink-0 text-xs`}>
                       {c.name.slice(0, 2).toUpperCase()}
                     </div>
                   )}
 
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-xs text-white truncate group-hover:text-amber-400">
+                    <h4 className="font-semibold text-xs truncate group-hover:text-indigo-500">
                       {c.name}
                     </h4>
-                    <p className="text-[10px] text-[#a1a1aa] truncate">{c.title}</p>
+                    <p className="text-[10px] opacity-70 truncate">{c.title}</p>
                   </div>
                 </div>
               </div>
@@ -246,46 +256,46 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           </>
         )}
 
-        {/* LOCATIONS LIST */}
+        {/* WORLDBUILDER LOCATIONS */}
         {activeTab === 'locations' && (
           <>
             {filteredLocations.map((l) => (
               <div
                 key={l.id}
                 onClick={() => onOpenEntityDetail('location', l.id)}
-                className="group p-2 bg-[#09090b] hover:bg-[#18181b] border border-[#27272a] rounded-lg transition-all cursor-pointer flex items-center gap-2"
+                className={`group p-2 ${cardBg} border rounded-lg transition-all cursor-pointer flex items-center gap-2 hover:border-sky-500/50`}
               >
-                <div className="w-7 h-7 rounded bg-[#18181b] border border-[#27272a] flex items-center justify-center text-sky-400 shrink-0">
+                <div className={`w-7 h-7 rounded ${cardBg} border flex items-center justify-center text-sky-500 shrink-0`}>
                   <MapPin className="w-3.5 h-3.5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-xs text-white truncate group-hover:text-sky-400">
+                  <h4 className="font-semibold text-xs truncate group-hover:text-sky-500">
                     {l.name}
                   </h4>
-                  <p className="text-[10px] text-[#a1a1aa] truncate">{l.region}</p>
+                  <p className="text-[10px] opacity-70 truncate">{l.region}</p>
                 </div>
               </div>
             ))}
           </>
         )}
 
-        {/* FACTIONS LIST */}
+        {/* WORLDBUILDER FACTIONS */}
         {activeTab === 'factions' && (
           <>
             {filteredFactions.map((f) => (
               <div
                 key={f.id}
                 onClick={() => onOpenEntityDetail('faction', f.id)}
-                className="group p-2 bg-[#09090b] hover:bg-[#18181b] border border-[#27272a] rounded-lg transition-all cursor-pointer flex items-center gap-2"
+                className={`group p-2 ${cardBg} border rounded-lg transition-all cursor-pointer flex items-center gap-2 hover:border-indigo-500/50`}
               >
-                <div className="w-7 h-7 rounded bg-[#18181b] border border-[#27272a] flex items-center justify-center text-xs shrink-0">
+                <div className={`w-7 h-7 rounded ${cardBg} border flex items-center justify-center text-xs shrink-0`}>
                   {f.emblem}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-xs text-white truncate group-hover:text-indigo-400">
+                  <h4 className="font-semibold text-xs truncate group-hover:text-indigo-500">
                     {f.name}
                   </h4>
-                  <p className="text-[10px] text-amber-500 font-mono truncate">{f.allegiance}</p>
+                  <p className="text-[10px] opacity-70 truncate font-mono">{f.allegiance}</p>
                 </div>
               </div>
             ))}

@@ -8,6 +8,10 @@ export interface Book {
   status: 'Planning' | 'Drafting' | 'Editing' | 'Published';
   summary: string;
   yearRange: string;
+  volumeNumber?: number;
+  description?: string;
+  wordCountGoal?: number;
+  currentWordCount?: number;
 }
 
 export interface Character {
@@ -30,42 +34,44 @@ export interface Character {
 export interface Location {
   id: string;
   name: string;
-  type: 'City' | 'Kingdom' | 'Dungeon' | 'Sacred Site' | 'Wilderness' | 'Fortress' | 'Realm';
+  type: string;
   region: string;
-  bookIds: string[];
-  controllingFactionId?: string;
   description: string;
+  bookIds: string[];
   imageUrl?: string;
-  landmarks: string[];
+  dangerLevel?: string;
+  controllingFactionId?: string;
+  landmarks?: string[];
   markdownNoteId?: string;
-  dangerLevel: 'Safe' | 'Moderate' | 'Perilous' | 'Forbidden';
 }
 
 export interface Faction {
   id: string;
   name: string;
-  emblem: string;
-  allegiance: 'Order' | 'Chaos' | 'Neutral' | 'Rebel' | 'Shadow';
-  leaderCharacterId?: string;
-  description: string;
+  allegiance: string;
   motto: string;
-  influenceLevel: 'Dominant' | 'Regional' | 'Secret Society' | 'Declining';
+  description: string;
+  emblem?: string;
+  leaderId?: string;
+  leaderCharacterId?: string;
+  influenceLevel?: string;
 }
 
 export interface TimelineEvent {
   id: string;
   title: string;
-  year: number; // Numerical year for sorting
-  yearLabel: string; // e.g. "Year 1422 of the Third Age"
-  era: 'Age of Dawn' | 'The Shattered Crown' | 'Age of Ashes' | 'The Convergence';
-  bookId: string;
-  bookFilterTag?: string; // e.g. 'Trilogy Book 1', 'Standalone A', 'Trilogy Book 2', 'Trilogy Book 3'
-  eventType: 'Battle' | 'Coronation' | 'Cataclysm' | 'Secret Treaty' | 'Birth/Death' | 'Discovery' | 'Magic Surge';
-  characterIds: string[];
-  locationIds: string[];
+  year: number;
+  yearLabel: string;
+  era: string;
   summary: string;
+  eventType: 'Battle' | 'Coronation' | 'Cataclysm' | 'Secret Treaty' | 'Discovery' | 'Magic Surge';
+  bookFilterTag?: string;
+  importance: 'Major' | 'Minor' | 'Critical' | 'World-Changing';
+  bookId?: string;
+  characterIds: string[];
+  locationId?: string;
+  locationIds?: string[];
   markdownNoteId?: string;
-  importance: 'World-Changing' | 'Major' | 'Minor';
 }
 
 export interface MarkdownDoc {
@@ -73,22 +79,22 @@ export interface MarkdownDoc {
   title: string;
   category: 'Lore' | 'Magic System' | 'Character Profile' | 'Location Atlas' | 'Chapter Draft' | 'Rules & Notes';
   content: string;
-  linkedEntityIds: {
-    type: EntityType;
-    id: string;
-    name: string;
-  }[];
+  linkedEntityIds: (string | { type: string; id: string; name: string })[];
   tags: string[];
   updatedAt: string;
-  wordCount: number;
+  wordCount?: number;
 }
 
 export interface WorldSettings {
+  worldTitle: string;
   seriesTitle: string;
-  author: string;
-  mainTheme: string;
-  magicSystemName: string;
-  currentBookId: string;
+  authorName: string;
+  author?: string;
+  primaryMagicSystem: string;
+  magicSystemName?: string;
+  defaultBookId?: string;
+  currentBookId?: string;
+  mainTheme?: string;
 }
 
 export interface PWAInstallPromptEvent extends Event {

@@ -1,23 +1,48 @@
 @import "tailwindcss";
 
-@layer utilities {
-  /* Custom thin scrollbar for high-density UI */
-  ::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+@layer base {
+  .theme-dark {
+    background-color: #0c0c0e;
+    color: #e4e4e7;
   }
-  ::-webkit-scrollbar-track {
+  .theme-light {
+    background-color: #f8fafc;
+    color: #0f172a;
+  }
+  .theme-sepia {
+    background-color: #fbf0d9;
+    color: #433422;
+  }
+}
+
+@layer utilities {
+  /* Custom thin scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .theme-dark ::-webkit-scrollbar-track {
     background: #09090b;
   }
-  ::-webkit-scrollbar-thumb {
+  .theme-dark ::-webkit-scrollbar-thumb {
     background: #27272a;
-    border-radius: 2px;
+    border-radius: 3px;
   }
-  ::-webkit-scrollbar-thumb:hover {
-    background: #3f3f46;
+  .theme-light ::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+  .theme-light ::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+  .theme-sepia ::-webkit-scrollbar-track {
+    background: #f4e4bc;
+  }
+  .theme-sepia ::-webkit-scrollbar-thumb {
+    background: #dcc090;
+    border-radius: 3px;
   }
 
-  /* Hide scrollbar utility */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }

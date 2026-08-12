@@ -15,6 +15,7 @@ import { RightSidebar } from './RightSidebar';
 import { SettingsView } from './SettingsView';
 import { MasterMatrixView } from './MasterMatrixView';
 import { useLoreContext } from '../context/LoreContext';
+import { useTheme } from '../context/ThemeContext';
 
 import {
   FileText,
@@ -47,6 +48,8 @@ interface ResponsiveShellProps {
   onSelectBookId: (id: string) => void;
   onOpenEntityDetail: (type: 'character' | 'location' | 'faction', id: string) => void;
   onCreateEntity: (type: 'character' | 'location' | 'faction' | 'event') => void;
+  onUpdateTimelineEvent?: (updated: TimelineEvent) => void;
+  onDeleteTimelineEvent?: (id: string) => void;
   onRefreshData: () => void;
 }
 
@@ -70,8 +73,11 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
   onSelectBookId,
   onOpenEntityDetail,
   onCreateEntity,
+  onUpdateTimelineEvent,
+  onDeleteTimelineEvent,
   onRefreshData
 }) => {
+  const { theme } = useTheme();
   const {
     mobileTab,
     setMobileTab,
@@ -86,7 +92,6 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
 
   const [dbSearchTerm, setDbSearchTerm] = useState('');
 
-  // Filtered lists for mobile Database view
   const mobileFilteredCharacters = characters.filter((c) => {
     const matchesBook = selectedBookId === 'all' || c.bookIds.includes(selectedBookId);
     const matchesSearch =
@@ -113,13 +118,30 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
     return matchesBook && matchesSearch;
   });
 
+  const isSepia = theme === 'sepia';
+  const isLight = theme === 'light';
+
+  const containerBg = isSepia
+    ? 'bg-[#fbf0d9] text-[#433422]'
+    : isLight
+    ? 'bg-[#f8fafc] text-[#0f172a]'
+    : 'bg-[#0c0c0e] text-[#e4e4e7]';
+
+  const navBg = isSepia
+    ? 'bg-[#f4e4bc] border-[#dcc090]'
+    : isLight
+    ? 'bg-[#f1f5f9] border-[#cbd5e1]'
+    : 'bg-[#09090b] border-[#27272a]';
+
+  const accentColor = isSepia ? 'text-[#964b00]' : isLight ? 'text-indigo-600' : 'text-indigo-400';
+
   return (
-    <div className="flex-1 flex flex-col min-h-0 relative overflow-hidden bg-[#0c0c0e] text-[#e4e4e7]">
+    <div className={`flex-1 flex flex-col min-h-0 relative overflow-hidden ${containerBg} select-none`}>
       {/* ========================================================= */}
       {/* 1. MOBILE & TABLET LAYOUT (< lg screen width)             */}
       {/* ========================================================= */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden lg:hidden pb-14">
-        {/* TAB 1: WRITER CANVAS (100% screen width & height) */}
+        {/* TAB 1: WRITER CANVAS */}
         {mobileTab === 'editor' && (
           <div className="flex-1 flex flex-col min-h-0 h-full w-full">
             <CenterCanvas
@@ -138,18 +160,15 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
           </div>
         )}
 
-        {/* TAB 2: STORY BIBLE (Characters / Factions / Locations) */}
+        {/* TAB 2: WORLDBUILDER */}
         {mobileTab === 'databases' && (
-          <div className="flex-1 flex flex-col min-h-0 h-full w-full bg-[#0c0c0e] p-3 space-y-3 overflow-y-auto">
-            {/* Sub-menu Tabs Header */}
-            <div className="flex items-center justify-between gap-2 border-b border-[#27272a] pb-2">
-              <div className="flex items-center gap-1 bg-[#18181b] p-1 rounded-lg border border-[#27272a] text-xs flex-1">
+          <div className={`flex-1 flex flex-col min-h-0 h-full w-full ${containerBg} p-3 space-y-3 overflow-y-auto`}>
+            <div className="flex items-center justify-between gap-2 border-b pb-2">
+              <div className={`flex items-center gap-1 ${navBg} p-1 rounded-lg border text-xs flex-1`}>
                 <button
                   onClick={() => setDbSubTab('characters')}
                   className={`flex-1 py-1.5 px-2 rounded-md font-semibold text-center transition-all flex items-center justify-center gap-1 ${
-                    dbSubTab === 'characters'
-                      ? 'bg-indigo-600 text-white shadow'
-                      : 'text-[#71717a] hover:text-[#e4e4e7]'
+                    dbSubTab === 'characters' ? 'bg-indigo-600 text-white shadow' : 'opacity-70 hover:opacity-100'
                   }`}
                 >
                   <Users className="w-3.5 h-3.5" />
@@ -159,9 +178,7 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
                 <button
                   onClick={() => setDbSubTab('locations')}
                   className={`flex-1 py-1.5 px-2 rounded-md font-semibold text-center transition-all flex items-center justify-center gap-1 ${
-                    dbSubTab === 'locations'
-                      ? 'bg-indigo-600 text-white shadow'
-                      : 'text-[#71717a] hover:text-[#e4e4e7]'
+                    dbSubTab === 'locations' ? 'bg-indigo-600 text-white shadow' : 'opacity-70 hover:opacity-100'
                   }`}
                 >
                   <MapPin className="w-3.5 h-3.5" />
@@ -171,9 +188,7 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
                 <button
                   onClick={() => setDbSubTab('factions')}
                   className={`flex-1 py-1.5 px-2 rounded-md font-semibold text-center transition-all flex items-center justify-center gap-1 ${
-                    dbSubTab === 'factions'
-                      ? 'bg-indigo-600 text-white shadow'
-                      : 'text-[#71717a] hover:text-[#e4e4e7]'
+                    dbSubTab === 'factions' ? 'bg-indigo-600 text-white shadow' : 'opacity-70 hover:opacity-100'
                   }`}
                 >
                   <Shield className="w-3.5 h-3.5" />
@@ -194,7 +209,6 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
               </button>
             </div>
 
-            {/* List items */}
             <div className="space-y-2">
               {dbSubTab === 'characters' && (
                 <>
@@ -202,25 +216,25 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
                     <div
                       key={c.id}
                       onClick={() => onOpenEntityDetail('character', c.id)}
-                      className="p-3 bg-[#09090b] hover:bg-[#18181b] border border-[#27272a] rounded-xl flex items-center gap-3 cursor-pointer transition-all"
+                      className={`p-3 ${navBg} border rounded-xl flex items-center gap-3 cursor-pointer transition-all`}
                     >
                       {c.avatarUrl ? (
                         <img
                           src={c.avatarUrl}
                           alt={c.name}
                           referrerPolicy="no-referrer"
-                          className="w-10 h-10 rounded-lg object-cover border border-[#27272a]"
+                          className="w-10 h-10 rounded-lg object-cover border"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-lg bg-[#18181b] border border-[#27272a] flex items-center justify-center font-bold text-indigo-400 text-sm">
+                        <div className={`w-10 h-10 rounded-lg ${navBg} border flex items-center justify-center font-bold ${accentColor} text-sm`}>
                           {c.name.slice(0, 2).toUpperCase()}
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-sm text-white truncate">{c.name}</h4>
-                        <p className="text-xs text-[#a1a1aa] truncate">{c.title}</p>
+                        <h4 className="font-bold text-sm truncate">{c.name}</h4>
+                        <p className="text-xs opacity-70 truncate">{c.title}</p>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-[#71717a]" />
+                      <ChevronRight className="w-4 h-4 opacity-60" />
                     </div>
                   ))}
                 </>
@@ -232,16 +246,16 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
                     <div
                       key={l.id}
                       onClick={() => onOpenEntityDetail('location', l.id)}
-                      className="p-3 bg-[#09090b] hover:bg-[#18181b] border border-[#27272a] rounded-xl flex items-center gap-3 cursor-pointer transition-all"
+                      className={`p-3 ${navBg} border rounded-xl flex items-center gap-3 cursor-pointer transition-all`}
                     >
-                      <div className="w-10 h-10 rounded-lg bg-[#18181b] border border-[#27272a] flex items-center justify-center text-sky-400">
+                      <div className={`w-10 h-10 rounded-lg ${navBg} border flex items-center justify-center text-sky-500`}>
                         <MapPin className="w-5 h-5" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-sm text-white truncate">{l.name}</h4>
-                        <p className="text-xs text-[#a1a1aa] truncate">{l.region}</p>
+                        <h4 className="font-bold text-sm truncate">{l.name}</h4>
+                        <p className="text-xs opacity-70 truncate">{l.region}</p>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-[#71717a]" />
+                      <ChevronRight className="w-4 h-4 opacity-60" />
                     </div>
                   ))}
                 </>
@@ -253,16 +267,16 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
                     <div
                       key={f.id}
                       onClick={() => onOpenEntityDetail('faction', f.id)}
-                      className="p-3 bg-[#09090b] hover:bg-[#18181b] border border-[#27272a] rounded-xl flex items-center gap-3 cursor-pointer transition-all"
+                      className={`p-3 ${navBg} border rounded-xl flex items-center gap-3 cursor-pointer transition-all`}
                     >
-                      <div className="w-10 h-10 rounded-lg bg-[#18181b] border border-[#27272a] flex items-center justify-center text-xl">
+                      <div className={`w-10 h-10 rounded-lg ${navBg} border flex items-center justify-center text-xl`}>
                         {f.emblem}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-sm text-white truncate">{f.name}</h4>
-                        <p className="text-xs text-indigo-400 truncate">{f.allegiance}</p>
+                        <h4 className="font-bold text-sm truncate">{f.name}</h4>
+                        <p className={`text-xs ${accentColor} truncate`}>{f.allegiance}</p>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-[#71717a]" />
+                      <ChevronRight className="w-4 h-4 opacity-60" />
                     </div>
                   ))}
                 </>
@@ -273,7 +287,7 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
 
         {/* TAB 3: TIMELINE */}
         {mobileTab === 'timeline' && (
-          <div className="flex-1 flex flex-col min-h-0 h-full w-full bg-[#0c0c0e]">
+          <div className={`flex-1 flex flex-col min-h-0 h-full w-full ${containerBg}`}>
             <RightSidebar
               timelineEvents={timeline}
               characters={characters}
@@ -285,6 +299,8 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
               onSelectDoc={onSelectDoc}
               onOpenEntityDetail={onOpenEntityDetail}
               onCreateEvent={() => onCreateEntity('event')}
+              onUpdateEvent={onUpdateTimelineEvent}
+              onDeleteEvent={onDeleteTimelineEvent}
               isOpen={true}
             />
           </div>
@@ -292,17 +308,17 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
 
         {/* TAB 4: SETTINGS */}
         {mobileTab === 'settings' && (
-          <div className="flex-1 flex flex-col min-h-0 h-full w-full bg-[#0c0c0e] p-4 overflow-y-auto">
+          <div className={`flex-1 flex flex-col min-h-0 h-full w-full ${containerBg} p-4 overflow-y-auto`}>
             <SettingsView settings={settings} onRefreshData={onRefreshData} />
           </div>
         )}
 
         {/* Mobile Bottom Navigation Bar */}
-        <nav className="fixed bottom-0 left-0 right-0 h-14 bg-[#09090b] border-t border-[#27272a] flex items-center justify-around z-40 lg:hidden">
+        <nav className={`fixed bottom-0 left-0 right-0 h-14 ${navBg} border-t flex items-center justify-around z-40 lg:hidden`}>
           <button
             onClick={() => setMobileTab('editor')}
             className={`flex flex-col items-center justify-center w-16 py-1 transition-all ${
-              mobileTab === 'editor' ? 'text-indigo-400 font-bold scale-105' : 'text-[#71717a] hover:text-[#e4e4e7]'
+              mobileTab === 'editor' ? `${accentColor} font-bold scale-105` : 'opacity-70 hover:opacity-100'
             }`}
           >
             <FileText className="w-5 h-5" />
@@ -312,17 +328,17 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
           <button
             onClick={() => setMobileTab('databases')}
             className={`flex flex-col items-center justify-center w-16 py-1 transition-all ${
-              mobileTab === 'databases' ? 'text-indigo-400 font-bold scale-105' : 'text-[#71717a] hover:text-[#e4e4e7]'
+              mobileTab === 'databases' ? `${accentColor} font-bold scale-105` : 'opacity-70 hover:opacity-100'
             }`}
           >
             <Users className="w-5 h-5" />
-            <span className="text-[10px] mt-0.5">Bible</span>
+            <span className="text-[10px] mt-0.5">World</span>
           </button>
 
           <button
             onClick={() => setMobileTab('timeline')}
             className={`flex flex-col items-center justify-center w-16 py-1 transition-all ${
-              mobileTab === 'timeline' ? 'text-indigo-400 font-bold scale-105' : 'text-[#71717a] hover:text-[#e4e4e7]'
+              mobileTab === 'timeline' ? `${accentColor} font-bold scale-105` : 'opacity-70 hover:opacity-100'
             }`}
           >
             <Clock className="w-5 h-5" />
@@ -332,7 +348,7 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
           <button
             onClick={() => setMobileTab('settings')}
             className={`flex flex-col items-center justify-center w-16 py-1 transition-all ${
-              mobileTab === 'settings' ? 'text-indigo-400 font-bold scale-105' : 'text-[#71717a] hover:text-[#e4e4e7]'
+              mobileTab === 'settings' ? `${accentColor} font-bold scale-105` : 'opacity-70 hover:opacity-100'
             }`}
           >
             <Settings className="w-5 h-5" />
@@ -344,10 +360,10 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
       {/* ========================================================= */}
       {/* 2. PC / DESKTOP MULTI-PANE LAYOUT (lg:flex)              */}
       {/* ========================================================= */}
-      <div className="hidden lg:flex flex-1 min-h-0 relative overflow-hidden bg-[#0c0c0e]">
-        {/* LEFT MANUSCRIPT & STORY BIBLE DRAWER */}
+      <div className={`hidden lg:flex flex-1 min-h-0 relative overflow-hidden ${containerBg}`}>
+        {/* LEFT MANUSCRIPT & WORLDBUILDER DRAWER */}
         {leftSidebarOpen && (
-          <div className="w-64 xl:w-72 border-r border-[#27272a] bg-[#09090b] flex flex-col shrink-0 min-h-0">
+          <div className={`w-64 xl:w-72 border-r ${navBg} flex flex-col shrink-0 min-h-0`}>
             <LeftSidebar
               characters={characters}
               locations={locations}
@@ -364,8 +380,8 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
           </div>
         )}
 
-        {/* CENTER PRIMARY WRITER CANVAS (DOMINATES SCREEN) */}
-        <div className="flex-1 min-w-0 bg-[#0c0c0e] flex flex-col min-h-0 overflow-hidden">
+        {/* CENTER PRIMARY WRITER CANVAS */}
+        <div className={`flex-1 min-w-0 ${containerBg} flex flex-col min-h-0 overflow-hidden`}>
           <CenterCanvas
             docs={docs}
             activeDocId={activeDocId}
@@ -381,9 +397,9 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
           />
         </div>
 
-        {/* RIGHT COLLAPSIBLE STORY BIBLE & TIMELINE REFERENCE DRAWER */}
+        {/* RIGHT COLLAPSIBLE WORLDBUILDER & TIMELINE REFERENCE DRAWER */}
         {rightSidebarOpen && (
-          <div className="w-80 xl:w-96 border-l border-[#27272a] bg-[#09090b] flex flex-col shrink-0 min-h-0 animate-in slide-in-from-right duration-200">
+          <div className={`w-80 xl:w-96 border-l ${navBg} flex flex-col shrink-0 min-h-0 animate-in slide-in-from-right duration-200`}>
             <RightSidebar
               timelineEvents={timeline}
               characters={characters}
@@ -395,6 +411,8 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
               onSelectDoc={onSelectDoc}
               onOpenEntityDetail={onOpenEntityDetail}
               onCreateEvent={() => onCreateEntity('event')}
+              onUpdateEvent={onUpdateTimelineEvent}
+              onDeleteEvent={onDeleteTimelineEvent}
               isOpen={true}
             />
           </div>

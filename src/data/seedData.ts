@@ -1,8 +1,11 @@
 import { Book, Character, Location, Faction, TimelineEvent, MarkdownDoc, WorldSettings } from '../types';
 
 export const initialWorldSettings: WorldSettings = {
+  worldTitle: "Aethelgard Realm",
   seriesTitle: "The Chronicles of Aethelgard",
+  authorName: "J.R. Vance",
   author: "J.R. Vance",
+  primaryMagicSystem: "Aetherial Resonance",
   mainTheme: "Power corrupts the sacred, but fate binds the forgotten.",
   magicSystemName: "Aetherial Resonance",
   currentBookId: "book-1"

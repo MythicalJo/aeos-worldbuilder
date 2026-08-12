@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { WorldSettings, Book } from '../types';
+import { WorldSettings } from '../types';
+import { useTheme } from '../context/ThemeContext';
 import {
   Settings,
-  BookOpen,
   Download,
   Upload,
   RefreshCw,
@@ -22,6 +22,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   settings,
   onRefreshData
 }) => {
+  const { theme } = useTheme();
   const [worldTitle, setWorldTitle] = useState(settings.worldTitle || 'My Fantasy World');
   const [authorName, setAuthorName] = useState(settings.authorName || 'Author');
   const [magicSystem, setMagicSystem] = useState(settings.primaryMagicSystem || 'Elemental Magic');
@@ -67,9 +68,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         if (ok) {
           setImportError(null);
           onRefreshData();
-          alert('Project backup imported successfully!');
+          alert('Worldbuilder project backup imported successfully!');
         } else {
-          setImportError('Invalid JSON format for project backup.');
+          setImportError('Invalid JSON format for backup.');
         }
       } catch (err) {
         setImportError('Failed to parse backup file.');
@@ -85,62 +86,79 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     }
   };
 
+  const isSepia = theme === 'sepia';
+  const isLight = theme === 'light';
+
+  const containerBg = isSepia
+    ? 'bg-[#fbf0d9] text-[#433422]'
+    : isLight
+    ? 'bg-[#f8fafc] text-[#0f172a]'
+    : 'bg-[#0c0c0e] text-[#e4e4e7]';
+
+  const cardBg = isSepia
+    ? 'bg-[#f4e4bc] border-[#dcc090]'
+    : isLight
+    ? 'bg-[#ffffff] border-[#cbd5e1]'
+    : 'bg-[#09090b] border-[#27272a]';
+
+  const accentColor = isSepia ? 'text-[#964b00]' : isLight ? 'text-indigo-600' : 'text-indigo-400';
+
   return (
-    <div className="flex-1 bg-[#0c0c0e] text-[#e4e4e7] overflow-y-auto p-4 md:p-6 space-y-6 max-w-4xl mx-auto w-full select-none">
+    <div className={`flex-1 ${containerBg} overflow-y-auto p-4 md:p-6 space-y-6 max-w-4xl mx-auto w-full select-none`}>
       {/* Settings Header */}
-      <div className="border-b border-[#27272a] pb-4">
-        <h2 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
-          <Settings className="w-5 h-5 text-indigo-400" />
-          <span>Project Settings & Metadata</span>
+      <div className="border-b pb-4 opacity-80">
+        <h2 className="text-lg md:text-xl font-bold flex items-center gap-2">
+          <Settings className={`w-5 h-5 ${accentColor}`} />
+          <span>Project Settings & Worldbuilder Metadata</span>
         </h2>
-        <p className="text-xs text-[#71717a] mt-1">
-          Configure book project metadata, backup/restore project data, or install offline PWA.
+        <p className="text-xs opacity-70 mt-1">
+          Configure book project metadata, backup/restore Worldbuilder data, or verify offline PWA installation.
         </p>
       </div>
 
       {/* Story & Author Metadata Form */}
-      <form onSubmit={handleSaveSettings} className="bg-[#09090b] border border-[#27272a] rounded-xl p-4 space-y-4 shadow-lg">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
-          <Globe className="w-4 h-4 text-indigo-400" />
-          Story Metadata
+      <form onSubmit={handleSaveSettings} className={`${cardBg} border rounded-xl p-4 space-y-4 shadow-lg`}>
+        <h3 className={`text-xs font-bold uppercase tracking-wider ${accentColor} flex items-center gap-1.5`}>
+          <Globe className={`w-4 h-4 ${accentColor}`} />
+          Story & Setting Metadata
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
           <div>
-            <label className="font-bold text-[#e4e4e7] block mb-1">Realm / Setting Name</label>
+            <label className="font-bold block mb-1">Realm / Setting Name</label>
             <input
               type="text"
               value={worldTitle}
               onChange={(e) => setWorldTitle(e.target.value)}
-              className="w-full bg-[#18181b] border border-[#27272a] p-2 rounded-lg text-[#e4e4e7] focus:outline-none focus:border-indigo-500"
+              className="w-full bg-black/10 border border-current/20 p-2 rounded-lg focus:outline-none focus:border-indigo-500"
             />
           </div>
 
           <div>
-            <label className="font-bold text-[#e4e4e7] block mb-1">Author Name</label>
+            <label className="font-bold block mb-1">Author Name</label>
             <input
               type="text"
               value={authorName}
               onChange={(e) => setAuthorName(e.target.value)}
-              className="w-full bg-[#18181b] border border-[#27272a] p-2 rounded-lg text-[#e4e4e7] focus:outline-none focus:border-indigo-500"
+              className="w-full bg-black/10 border border-current/20 p-2 rounded-lg focus:outline-none focus:border-indigo-500"
             />
           </div>
         </div>
 
         <div>
-          <label className="font-bold text-[#e4e4e7] text-xs block mb-1">Primary Magic or Tech System</label>
+          <label className="font-bold text-xs block mb-1">Primary Magic or Tech System</label>
           <input
             type="text"
             value={magicSystem}
             onChange={(e) => setMagicSystem(e.target.value)}
-            className="w-full bg-[#18181b] border border-[#27272a] p-2 rounded-lg text-xs text-[#e4e4e7] focus:outline-none focus:border-indigo-500"
+            className="w-full bg-black/10 border border-current/20 p-2 rounded-lg text-xs focus:outline-none focus:border-indigo-500"
             placeholder="e.g. Glyph Magic"
           />
         </div>
 
         <div className="flex items-center justify-between pt-2">
           {savedSuccess && (
-            <span className="text-emerald-400 text-xs flex items-center gap-1 font-semibold">
+            <span className="text-emerald-500 text-xs flex items-center gap-1 font-bold">
               <CheckCircle2 className="w-4 h-4" />
               Settings saved!
             </span>
@@ -155,12 +173,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       </form>
 
       {/* Backup & Restore Data */}
-      <div className="bg-[#09090b] border border-[#27272a] rounded-xl p-4 space-y-4 shadow-lg text-xs">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
-          <Download className="w-4 h-4 text-indigo-400" />
-          Backup, Export & Restore
+      <div className={`${cardBg} border rounded-xl p-4 space-y-4 shadow-lg text-xs`}>
+        <h3 className={`text-xs font-bold uppercase tracking-wider ${accentColor} flex items-center gap-1.5`}>
+          <Download className={`w-4 h-4 ${accentColor}`} />
+          Backup, Export & Restore Worldbuilder Data
         </h3>
-        <p className="text-[#71717a]">
+        <p className="opacity-70">
           Export your entire project (Manuscript Chapters, Characters, Locations, Factions, Timeline) as a single JSON backup.
         </p>
 
@@ -174,14 +192,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <div className="flex flex-wrap items-center gap-3 pt-1">
           <button
             onClick={handleExportJson}
-            className="flex items-center gap-2 px-4 py-2 bg-[#18181b] hover:bg-[#27272a] text-[#e4e4e7] rounded-lg border border-[#27272a] font-medium transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold transition-colors shadow"
           >
-            <Download className="w-4 h-4 text-indigo-400" />
-            <span>Export Backup (.json)</span>
+            <Download className="w-4 h-4" />
+            <span>Export Worldbuilder (.json)</span>
           </button>
 
-          <label className="flex items-center gap-2 px-4 py-2 bg-[#18181b] hover:bg-[#27272a] text-[#e4e4e7] rounded-lg border border-[#27272a] font-medium cursor-pointer transition-colors">
-            <Upload className="w-4 h-4 text-sky-400" />
+          <label className="flex items-center gap-2 px-4 py-2 bg-black/10 hover:bg-black/20 border border-current/20 rounded-lg font-bold cursor-pointer transition-colors">
+            <Upload className="w-4 h-4 text-sky-500" />
             <span>Import Backup (.json)</span>
             <input
               type="file"
@@ -193,7 +211,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
           <button
             onClick={handleResetData}
-            className="flex items-center gap-2 px-4 py-2 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 rounded-lg border border-rose-800/50 font-medium ml-auto transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 rounded-lg border border-rose-800/50 font-bold ml-auto transition-colors"
           >
             <RefreshCw className="w-4 h-4 text-rose-400" />
             <span>Reset Demo State</span>
@@ -202,19 +220,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       </div>
 
       {/* PWA & Mobile Installation */}
-      <div className="bg-[#09090b] border border-[#27272a] rounded-xl p-4 space-y-3 shadow-lg text-xs">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
-          <Smartphone className="w-4 h-4 text-indigo-400" />
+      <div className={`${cardBg} border rounded-xl p-4 space-y-3 shadow-lg text-xs`}>
+        <h3 className={`text-xs font-bold uppercase tracking-wider ${accentColor} flex items-center gap-1.5`}>
+          <Smartphone className={`w-4 h-4 ${accentColor}`} />
           Progressive Web App (PWA) Offline Support
         </h3>
-        <p className="text-[#71717a] leading-relaxed">
+        <p className="opacity-70 leading-relaxed">
           This writing app is built as a PWA and works completely offline once installed. Your data persists locally in IndexedDB.
         </p>
 
-        <div className="flex items-center justify-between bg-[#18181b] p-3 rounded-lg border border-[#27272a] mt-2">
+        <div className="flex items-center justify-between bg-black/10 p-3 rounded-lg border border-current/20 mt-2">
           <div className="flex items-center gap-2">
             <div className={`w-3 h-3 rounded-full ${isInstalled ? 'bg-emerald-500' : 'bg-indigo-500 animate-pulse'}`} />
-            <span className="font-semibold text-[#e4e4e7]">
+            <span className="font-bold">
               {isInstalled ? 'Installed as Native PWA' : 'Ready for PWA Installation'}
             </span>
           </div>
