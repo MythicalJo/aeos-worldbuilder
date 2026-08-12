@@ -30,8 +30,8 @@ interface LeftSidebarProps {
   onSelectDoc: (id: string) => void;
   onNewDoc: () => void;
   onDeleteDoc?: (id: string) => void;
-  onOpenEntityDetail: (type: 'character' | 'location' | 'faction' | 'misc' | 'custom', id: string) => void;
-  onCreateEntity: (type: 'character' | 'location' | 'faction' | 'misc' | 'category') => void;
+  onOpenEntityDetail: (type: 'character' | 'location' | 'faction' | 'custom', id: string) => void;
+  onCreateEntity: (type: 'character' | 'location' | 'faction' | 'category' | string) => void;
   onDeleteCustomCategory?: (categoryId: string) => void;
   onDeleteCustomEntry?: (entryId: string) => void;
   isOpen: boolean;
@@ -102,10 +102,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     );
   });
 
-  const filteredMiscEntries = customEntries.filter(
-    (e) => e.categoryId === 'misc' && (e.title.toLowerCase().includes(searchTerm.toLowerCase()) || e.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
   const getCustomCategoryEntries = (catId: string) => {
     return customEntries.filter(
       (e) => e.categoryId === catId && (e.title.toLowerCase().includes(searchTerm.toLowerCase()) || e.description.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -141,6 +137,17 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
   const currentCustomCat = customCategories.find((c) => c.id === activeTab);
 
+  const activeTabDisplayName =
+    activeTab === 'docs'
+      ? 'chapters'
+      : activeTab === 'characters'
+      ? 'people'
+      : activeTab === 'locations'
+      ? 'places'
+      : activeTab === 'factions'
+      ? 'factions'
+      : currentCustomCat?.name || 'entries';
+
   return (
     <aside className={`w-64 md:w-72 ${sidebarBg} border-r flex flex-col h-full shrink-0 z-20 select-none`}>
       {/* Sidebar Header */}
@@ -164,7 +171,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           </button>
         </div>
 
-        {/* Tab Selection Row (Characters | Places | Factions | Misc | Custom Categories | +) */}
+        {/* Tab Selection Row (Chapters | People | Places | Factions | Custom Categories | +) */}
         <div className={`flex items-center gap-1 ${cardBg} p-1 rounded-xl border text-xs overflow-x-auto no-scrollbar`}>
           <button
             onClick={() => setActiveTab('docs')}
@@ -210,17 +217,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             <span className="text-[10px]">Factions</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab('misc')}
-            className={`py-1 px-2.5 rounded-lg flex items-center gap-1 font-bold transition-all shrink-0 ${
-              activeTab === 'misc' ? `${activeCardBg} ${accentClasses.text}` : 'opacity-60 hover:opacity-100'
-            }`}
-            title="Misc World Entries"
-          >
-            <Gem className="w-3.5 h-3.5 text-amber-500" />
-            <span className="text-[10px]">Misc</span>
-          </button>
-
           {/* Dynamic Custom Categories */}
           {customCategories.map((cat) => (
             <button
@@ -251,7 +247,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 opacity-60" />
           <input
             type="text"
-            placeholder={`Search ${activeTab === 'docs' ? 'chapters' : activeTab}...`}
+            placeholder={`Search ${activeTabDisplayName}...`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={`w-full ${cardBg} border text-xs pl-8 pr-3 py-1.5 rounded-xl focus:outline-none focus:border-indigo-500`}
@@ -271,8 +267,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               ? `Places (${filteredLocations.length})`
               : activeTab === 'factions'
               ? `Factions (${filteredFactions.length})`
-              : activeTab === 'misc'
-              ? `Misc (${filteredMiscEntries.length})`
               : `${currentCustomCat?.name || 'Custom'} (${getCustomCategoryEntries(activeTab).length})`}
           </span>
 
@@ -324,9 +318,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             <span>Faction</span>
           </button>
         )}
-        {(activeTab === 'misc' || activeTab.startsWith('cat-')) && (
+        {activeTab.startsWith('cat-') && (
           <button
-            onClick={() => onCreateEntity('misc')}
+            onClick={() => onCreateEntity(activeTab)}
             className={`flex items-center gap-1 text-[11px] ${accentClasses.bg} text-white px-2.5 py-0.5 rounded-lg transition-all shadow`}
           >
             <Plus className="w-3 h-3" />
@@ -469,13 +463,13 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           </>
         )}
 
-        {/* MISC & CUSTOM CATEGORY ENTRIES */}
-        {(activeTab === 'misc' || activeTab.startsWith('cat-')) && (
+        {/* CUSTOM CATEGORY ENTRIES */}
+        {activeTab.startsWith('cat-') && (
           <>
-            {(activeTab === 'misc' ? filteredMiscEntries : getCustomCategoryEntries(activeTab)).map((entry) => (
+            {getCustomCategoryEntries(activeTab).map((entry) => (
               <div
                 key={entry.id}
-                onClick={() => onOpenEntityDetail('misc', entry.id)}
+                onClick={() => onOpenEntityDetail('custom', entry.id)}
                 className={`group p-2.5 ${cardBg} border rounded-xl transition-all cursor-pointer flex items-start justify-between gap-2 hover:border-amber-500/50`}
               >
                 <div className="flex-1 min-w-0">

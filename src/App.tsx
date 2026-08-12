@@ -44,7 +44,9 @@ import {
   saveDocs,
   loadActiveDocId,
   saveActiveDocId,
-  idbLoadAllData
+  idbLoadAllData,
+  sanitizeAndRecoverDocs,
+  migrateLegacyMiscEntries
 } from './lib/storage';
 
 import { initPWA } from './lib/pwa';
@@ -57,7 +59,7 @@ export default function App() {
     initPWA();
   }, []);
 
-  // Main Persistent State
+  // Main Persistent State with Startup Recovery Migration
   const [settings, setSettings] = useState<WorldSettings>(loadSettings);
   const [projects, setProjects] = useState<Project[]>(loadProjects);
   const [activeProjectId, setActiveProjectId] = useState<string>(() => loadSettings().activeProjectId || 'project-1');
@@ -65,16 +67,31 @@ export default function App() {
   const [factions, setFactions] = useState<Faction[]>(loadFactions);
   const [characters, setCharacters] = useState<Character[]>(loadCharacters);
   const [locations, setLocations] = useState<Location[]>(loadLocations);
-  const [customCategories, setCustomCategories] = useState<CustomCategory[]>(loadCustomCategories);
-  const [customEntries, setCustomEntries] = useState<CustomEntry[]>(loadCustomEntries);
+
+  const [customCategories, setCustomCategories] = useState<CustomCategory[]>(() => {
+    const rawCategories = loadCustomCategories();
+    const rawEntries = loadCustomEntries();
+    const { categories } = migrateLegacyMiscEntries(rawEntries, rawCategories);
+    return categories;
+  });
+
+  const [customEntries, setCustomEntries] = useState<CustomEntry[]>(() => {
+    const rawCategories = loadCustomCategories();
+    const rawEntries = loadCustomEntries();
+    const { entries } = migrateLegacyMiscEntries(rawEntries, rawCategories);
+    return entries;
+  });
+
   const [timeline, setTimeline] = useState<TimelineEvent[]>(loadTimeline);
-  const [docs, setDocs] = useState<MarkdownDoc[]>(loadDocs);
+  const [docs, setDocs] = useState<MarkdownDoc[]>(() => {
+    return sanitizeAndRecoverDocs(loadDocs(), loadProjects(), loadBooks());
+  });
 
   const [selectedBookId, setSelectedBookId] = useState<string>('book-1');
   const [activeDocId, setActiveDocId] = useState<string>(loadActiveDocId);
   const [openDocIds, setOpenDocIds] = useState<string[]>(['doc-1', 'doc-2']);
 
-  // Load from IndexedDB on startup
+  // Load from IndexedDB on startup & sanitize/recover
   useEffect(() => {
     idbLoadAllData()
       .then((data) => {
@@ -85,7 +102,15 @@ export default function App() {
           if (data.characters) setCharacters(data.characters);
           if (data.locations) setLocations(data.locations);
           if (data.timeline) setTimeline(data.timeline);
-          if (data.docs) setDocs(data.docs);
+          if (data.docs && data.docs.length > 0) {
+            const recovered = sanitizeAndRecoverDocs(data.docs, projects, books);
+            setDocs(recovered);
+          }
+          if (data.customEntries && data.customCategories) {
+            const { entries, categories } = migrateLegacyMiscEntries(data.customEntries, data.customCategories);
+            setCustomEntries(entries);
+            setCustomCategories(categories);
+          }
           if (data.activeDocId) setActiveDocId(data.activeDocId);
         }
       })
@@ -104,7 +129,7 @@ export default function App() {
   const [createCategoryOpen, setCreateCategoryOpen] = useState<boolean>(false);
 
   // Entity Detail Modal state
-  const [inspectType, setInspectType] = useState<'character' | 'location' | 'faction' | 'misc' | 'custom' | null>(null);
+  const [inspectType, setInspectType] = useState<'character' | 'location' | 'faction' | 'custom' | null>(null);
   const [inspectId, setInspectId] = useState<string | null>(null);
 
   // Create Entity Modal state
@@ -380,29 +405,38 @@ export default function App() {
     }
   };
 
+  // Custom Category Entry Creation
+  const handleCreateCustomEntry = (categoryId: string) => {
+    const targetCat = customCategories.find((c) => c.id === categoryId);
+    const catName = targetCat ? targetCat.name : 'Category';
+    const newEntryId = `entry-${Date.now()}`;
+    const newEntry: CustomEntry = {
+      id: newEntryId,
+      projectId: activeProjectId,
+      categoryId: categoryId,
+      title: `New ${catName} Entry`,
+      subtitle: `${catName} Lore`,
+      description: `Write description and details for this ${catName} entry...`,
+      tags: [catName.toLowerCase().replace(/\s+/g, '-')],
+      updatedAt: new Date().toISOString().split('T')[0]
+    };
+    const nextEntries = [newEntry, ...customEntries];
+    setCustomEntries(nextEntries);
+    saveCustomEntries(nextEntries);
+  };
+
   // Universal Create Action Handler
-  const handleCreateAction = (type: 'chapter' | 'character' | 'location' | 'faction' | 'misc' | 'category') => {
-    if (type === 'chapter') {
+  const handleCreateAction = (typeOrCatId: 'chapter' | 'character' | 'location' | 'faction' | 'category' | string) => {
+    if (typeOrCatId === 'chapter') {
       handleNewDoc();
-    } else if (type === 'character' || type === 'location' || type === 'faction') {
-      setCreateMode(type);
-    } else if (type === 'misc') {
-      const newEntryId = `entry-${Date.now()}`;
-      const newEntry: CustomEntry = {
-        id: newEntryId,
-        projectId: activeProjectId,
-        categoryId: 'misc',
-        title: 'New Misc World Note',
-        subtitle: 'General Worldbuilding',
-        description: 'Detail general world lore, artifacts, magic rules, or custom story info.',
-        tags: ['misc', 'lore'],
-        updatedAt: new Date().toISOString().split('T')[0]
-      };
-      const nextEntries = [newEntry, ...customEntries];
-      setCustomEntries(nextEntries);
-      saveCustomEntries(nextEntries);
-    } else if (type === 'category') {
+    } else if (typeOrCatId === 'character' || typeOrCatId === 'location' || typeOrCatId === 'faction') {
+      setCreateMode(typeOrCatId);
+    } else if (typeOrCatId === 'category') {
       setCreateCategoryOpen(true);
+    } else if (typeOrCatId.startsWith('cat-')) {
+      handleCreateCustomEntry(typeOrCatId);
+    } else {
+      setCreateMode('character');
     }
   };
 
@@ -412,9 +446,9 @@ export default function App() {
     const newCat: CustomCategory = {
       id: newCatId,
       projectId: activeProjectId,
-      name,
+      name: name.trim(),
       iconName,
-      description
+      description: description.trim()
     };
     const nextCats = [...customCategories, newCat];
     setCustomCategories(nextCats);
@@ -456,7 +490,14 @@ export default function App() {
           setCharacters(data.characters);
           setLocations(data.locations);
           setTimeline(data.timeline);
-          setDocs(data.docs);
+          if (data.docs) {
+            setDocs(sanitizeAndRecoverDocs(data.docs, projects, books));
+          }
+          if (data.customEntries && data.customCategories) {
+            const { entries, categories } = migrateLegacyMiscEntries(data.customEntries, data.customCategories);
+            setCustomEntries(entries);
+            setCustomCategories(categories);
+          }
           setActiveDocId(data.activeDocId);
         }
       })
@@ -467,10 +508,11 @@ export default function App() {
         setFactions(loadFactions());
         setCharacters(loadCharacters());
         setLocations(loadLocations());
-        setCustomCategories(loadCustomCategories());
-        setCustomEntries(loadCustomEntries());
+        const { entries, categories } = migrateLegacyMiscEntries(loadCustomEntries(), loadCustomCategories());
+        setCustomCategories(categories);
+        setCustomEntries(entries);
         setTimeline(loadTimeline());
-        setDocs(loadDocs());
+        setDocs(sanitizeAndRecoverDocs(loadDocs(), loadProjects(), loadBooks()));
         setActiveDocId(loadActiveDocId());
       });
   };
@@ -641,7 +683,7 @@ export default function App() {
     saveFactions(nextFacs);
   };
 
-  const handleDeleteEntity = (type: 'character' | 'location' | 'faction' | 'misc' | 'custom', id: string) => {
+  const handleDeleteEntity = (type: 'character' | 'location' | 'faction' | 'custom', id: string) => {
     if (type === 'character') {
       const nextChars = characters.filter((c) => c.id !== id);
       setCharacters(nextChars);
@@ -671,7 +713,7 @@ export default function App() {
       const nextFacs = factions.filter((f) => f.id !== id);
       setFactions(nextFacs);
       saveFactions(nextFacs);
-    } else if (type === 'misc' || type === 'custom') {
+    } else if (type === 'custom') {
       handleDeleteCustomEntry(id);
     }
   };
@@ -724,12 +766,11 @@ export default function App() {
             onUpdateDoc={handleUpdateDoc}
             onSelectBookId={handleSelectBook}
             onOpenEntityDetail={(type, id) => {
-              setInspectType(type);
+              setInspectType(type as any);
               setInspectId(id);
             }}
             onCreateEntity={(type) => {
-              if (type === 'category') setCreateCategoryOpen(true);
-              else handleCreateAction(type);
+              handleCreateAction(type);
             }}
             onDeleteCustomCategory={onRequestDeleteCustomCategory}
             onDeleteCustomEntry={handleDeleteCustomEntry}
@@ -773,16 +814,16 @@ export default function App() {
             docs={docs}
             onSelectDoc={handleSelectDoc}
             onOpenEntityDetail={(type, id) => {
-              setInspectType(type);
+              setInspectType(type as any);
               setInspectId(id);
             }}
           />
 
           {/* Entity Inspector & Detail Modal */}
           <EntityDetailModal
-            type={inspectType === 'misc' || inspectType === 'custom' ? null : inspectType}
+            type={inspectType === 'custom' ? null : inspectType}
             entityId={inspectId}
-            isOpen={inspectType !== null && inspectType !== 'misc' && inspectType !== 'custom'}
+            isOpen={inspectType !== null && inspectType !== 'custom'}
             onClose={() => {
               setInspectType(null);
               setInspectId(null);

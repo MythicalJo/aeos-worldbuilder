@@ -197,6 +197,54 @@ export function saveTimeline(events: TimelineEvent[]): void {
   idbSaveTimeline(events).catch((err) => console.error('IndexedDB saveTimeline error:', err));
 }
 
+export function sanitizeAndRecoverDocs(loadedDocs: MarkdownDoc[], projects: Project[], books: Book[]): MarkdownDoc[] {
+  if (!loadedDocs || loadedDocs.length === 0) return initialMarkdownDocs;
+
+  const defaultProjId = projects[0]?.id || 'project-1';
+
+  return loadedDocs.map((doc) => {
+    const projId = doc.projectId || defaultProjId;
+    const projBooks = books.filter((b) => !b.projectId || b.projectId === projId);
+    const defaultBookId = projBooks[0]?.id || books[0]?.id || 'book-1';
+    const bookId = doc.bookId || defaultBookId;
+
+    return {
+      ...doc,
+      projectId: projId,
+      bookId: bookId,
+      category: doc.category || 'Chapter Draft'
+    };
+  });
+}
+
+export function migrateLegacyMiscEntries(entries: CustomEntry[], categories: CustomCategory[]): { entries: CustomEntry[]; categories: CustomCategory[] } {
+  const hasMiscEntries = entries.some((e) => e.categoryId === 'misc');
+  if (!hasMiscEntries) return { entries, categories };
+
+  let targetCategory = categories.find((c) => c.name.toLowerCase().includes('lore') || c.name.toLowerCase().includes('notes'));
+  let updatedCategories = [...categories];
+
+  if (!targetCategory) {
+    targetCategory = {
+      id: 'cat-notes',
+      projectId: 'project-1',
+      name: 'Lore & Notes',
+      iconName: 'Scroll',
+      description: 'General story reference notes'
+    };
+    updatedCategories.push(targetCategory);
+  }
+
+  const updatedEntries = entries.map((e) => {
+    if (e.categoryId === 'misc') {
+      return { ...e, categoryId: targetCategory!.id };
+    }
+    return e;
+  });
+
+  return { entries: updatedEntries, categories: updatedCategories };
+}
+
 export function loadDocs(): MarkdownDoc[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.DOCS);

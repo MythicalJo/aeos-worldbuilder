@@ -29,8 +29,6 @@ interface VisualTimelineProps {
   characters: Character[];
   locations: Location[];
   books: Book[];
-  selectedBookFilter: string;
-  onSelectBookFilter: (filter: string) => void;
   onSelectDoc?: (id: string) => void;
   onOpenEntityDetail?: (type: 'character' | 'location' | 'faction', id: string) => void;
   onCreateEvent?: () => void;
@@ -44,8 +42,6 @@ export const VisualTimeline: React.FC<VisualTimelineProps> = ({
   characters,
   locations,
   books,
-  selectedBookFilter,
-  onSelectBookFilter,
   onSelectDoc,
   onOpenEntityDetail,
   onCreateEvent,
@@ -56,6 +52,8 @@ export const VisualTimeline: React.FC<VisualTimelineProps> = ({
   const { theme, getAccentClasses } = useTheme();
   const accentClasses = getAccentClasses();
 
+  // Local Timeline Filter State (Completely Isolated from Global Navigation)
+  const [timelineBookFilter, setTimelineBookFilter] = useState<string>('all');
   const [orientation, setOrientation] = useState<'horizontal' | 'vertical'>('vertical');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -77,8 +75,8 @@ export const VisualTimeline: React.FC<VisualTimelineProps> = ({
     return timelineEvents
       .filter((evt) => {
         let matchesBook = true;
-        if (selectedBookFilter && selectedBookFilter !== 'all') {
-          matchesBook = evt.bookId === selectedBookFilter || evt.bookFilterTag === selectedBookFilter;
+        if (timelineBookFilter && timelineBookFilter !== 'all') {
+          matchesBook = evt.bookId === timelineBookFilter || evt.bookFilterTag === timelineBookFilter;
         }
 
         const matchesSearch =
@@ -90,7 +88,7 @@ export const VisualTimeline: React.FC<VisualTimelineProps> = ({
         return matchesBook && matchesSearch;
       })
       .sort((a, b) => a.year - b.year);
-  }, [timelineEvents, selectedBookFilter, searchTerm]);
+  }, [timelineEvents, timelineBookFilter, searchTerm]);
 
   const eraGroups = useMemo(() => {
     const groups: Record<string, TimelineEvent[]> = {};
@@ -188,14 +186,14 @@ export const VisualTimeline: React.FC<VisualTimelineProps> = ({
     <div className={`flex-1 flex flex-col h-full min-h-0 ${containerBg} overflow-hidden select-none`}>
       {/* Top Filter & Toolbar Bar */}
       <div className={`p-3 border-b ${headerBg} flex flex-wrap items-center justify-between gap-2 shrink-0`}>
-        {/* Dynamic Book Selection Dropdown */}
+        {/* Dynamic Book Selection Dropdown (Isolated Local State) */}
         <div className="flex items-center gap-2 flex-wrap">
           <div className={`flex items-center gap-1.5 ${cardBg} rounded-xl border px-2.5 py-1 text-xs`}>
             <BookOpen className={`w-3.5 h-3.5 ${accentClasses.text} shrink-0`} />
-            <span className="opacity-60 font-bold hidden sm:inline">Book:</span>
+            <span className="opacity-60 font-bold hidden sm:inline">Filter Book:</span>
             <select
-              value={selectedBookFilter}
-              onChange={(e) => onSelectBookFilter(e.target.value)}
+              value={timelineBookFilter}
+              onChange={(e) => setTimelineBookFilter(e.target.value)}
               className="bg-transparent font-bold text-xs py-0.5 focus:outline-none cursor-pointer"
             >
               <option value="all">All Project Books</option>
@@ -260,7 +258,7 @@ export const VisualTimeline: React.FC<VisualTimelineProps> = ({
         {filteredEvents.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center opacity-60 space-y-2">
             <Clock className="w-10 h-10 opacity-40" />
-            <p className="text-xs">No timeline events found matching the selected project book filter.</p>
+            <p className="text-xs">No timeline events found matching the selected book filter.</p>
           </div>
         ) : orientation === 'horizontal' ? (
           /* HORIZONTAL TIMELINE TRACK */
@@ -425,7 +423,7 @@ export const VisualTimeline: React.FC<VisualTimelineProps> = ({
             {selectedEvent.summary}
           </p>
 
-          {/* Involved Characters (Safely Filters Nonexistent Ghost Entities) */}
+          {/* Involved Characters */}
           {selectedEvent.characterIds && selectedEvent.characterIds.length > 0 && (
             <div className="space-y-1">
               <span className="text-[10px] font-bold opacity-60 uppercase tracking-wider flex items-center gap-1">

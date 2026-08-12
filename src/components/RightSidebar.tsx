@@ -250,10 +250,6 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
           characters={characters}
           locations={locations}
           books={books}
-          selectedBookFilter={selectedBookId}
-          onSelectBookFilter={(filter) => {
-            if (onSelectBookId) onSelectBookId(filter);
-          }}
           onSelectDoc={onSelectDoc}
           onOpenEntityDetail={onOpenEntityDetail}
           onCreateEvent={onCreateEvent}

@@ -1,6 +1,12 @@
 import { Character, Location, Faction } from '../types';
 import { marked } from 'marked';
 
+// Configure marked to preserve single and double line breaks & GFM
+marked.use({
+  breaks: true,
+  gfm: true
+});
+
 export function parseWikiLinksToHTML(
   rawMarkdown: string,
   characters: Character[] = [],

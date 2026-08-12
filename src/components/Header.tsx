@@ -45,7 +45,7 @@ interface HeaderProps {
   rightSidebarOpen: boolean;
   onToggleRightSidebar: () => void;
   onRefreshData: () => void;
-  onCreateAction: (type: 'chapter' | 'character' | 'location' | 'faction' | 'misc' | 'category') => void;
+  onCreateAction: (type: 'chapter' | 'character' | 'location' | 'faction' | 'category') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -319,19 +319,6 @@ export const Header: React.FC<HeaderProps> = ({
                 <Shield className="w-3.5 h-3.5 text-emerald-500" />
                 <span>Faction / Guild</span>
               </button>
-
-              <button
-                onClick={() => {
-                  onCreateAction('misc');
-                  setShowCreateMenu(false);
-                }}
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded hover:bg-black/10 text-left font-bold"
-              >
-                <Gem className="w-3.5 h-3.5 text-amber-500" />
-                <span>Misc World Entry</span>
-              </button>
-
-              <div className="border-t my-1" />
 
               <button
                 onClick={() => {

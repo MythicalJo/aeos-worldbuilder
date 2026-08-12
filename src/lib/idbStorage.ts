@@ -1,4 +1,4 @@
-import { Character, TimelineEvent, MarkdownDoc, Book, Faction, Location, WorldSettings } from '../types';
+import { Character, TimelineEvent, MarkdownDoc, Book, Faction, Location, WorldSettings, CustomCategory, CustomEntry } from '../types';
 import {
   initialWorldSettings,
   initialBooks,
@@ -249,6 +249,8 @@ export async function idbLoadAllData(): Promise<{
   locations: Location[];
   timeline: TimelineEvent[];
   docs: MarkdownDoc[];
+  customCategories?: CustomCategory[];
+  customEntries?: CustomEntry[];
   activeDocId: string;
 }> {
   await initializeDatabaseIfEmpty();

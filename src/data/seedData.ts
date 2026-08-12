@@ -244,6 +244,13 @@ export const initialCustomCategories: CustomCategory[] = [
     name: "Relics & Artifacts",
     iconName: "Gem",
     description: "Magical artifacts and ancient relics of Aethelgard."
+  },
+  {
+    id: "cat-rituals",
+    projectId: "project-1",
+    name: "Spells & Rituals",
+    iconName: "Scroll",
+    description: "Ancient rituals, spells, and magic lore."
   }
 ];
 
@@ -251,7 +258,7 @@ export const initialCustomEntries: CustomEntry[] = [
   {
     id: "entry-1",
     projectId: "project-1",
-    categoryId: "misc",
+    categoryId: "cat-rituals",
     title: "The Rite of Unmaking",
     subtitle: "Forbidden Ritual",
     description: "An ancient spell recorded in the Shadow Codex that fractures elemental spires.",
