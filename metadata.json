@@ -1,0 +1,6 @@
+{
+  "name": "Fantasy Worldbuilding Bible",
+  "description": "A PWA dashboard for multi-book fantasy series worldbuilding with character/location databases, markdown editor, and interactive timeline.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
