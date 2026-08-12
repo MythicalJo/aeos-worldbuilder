@@ -3,6 +3,7 @@ import { Character, Location, Faction, MarkdownDoc, Book, CustomCategory, Custom
 import { useLoreContext } from '../context/LoreContext';
 import { useTheme } from '../context/ThemeContext';
 import { PRELOADED_ICONS } from './CreateCategoryModal';
+import { NorthStarIcon } from './NorthStarIcon';
 import {
   Users,
   MapPin,
@@ -76,22 +77,21 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     return matchesProject && matchesSearch;
   });
 
+  // Worldbuilder entities belong to Project - render immediately without hiding behind book filter
   const filteredCharacters = characters.filter((c) => {
-    const matchesBook = selectedBookId === 'all' || c.bookIds.includes(selectedBookId);
-    const matchesSearch =
+    return (
       c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.traits.some((t) => t.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesBook && matchesSearch;
+      c.traits.some((t) => t.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
   });
 
   const filteredLocations = locations.filter((l) => {
-    const matchesBook = selectedBookId === 'all' || l.bookIds.includes(selectedBookId);
-    const matchesSearch =
+    return (
       l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       l.region.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.type.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesBook && matchesSearch;
+      l.type.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   });
 
   const filteredFactions = factions.filter((f) => {
@@ -154,7 +154,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
       <div className={`p-3 border-b space-y-2.5 ${sidebarBg}`}>
         <div className="flex items-center justify-between gap-1">
           <span className="text-[10px] uppercase font-bold tracking-wider opacity-60 flex items-center gap-1.5 shrink-0">
-            <Feather className={`w-3.5 h-3.5 ${accentClasses.text}`} />
+            <NorthStarIcon className={`w-3.5 h-3.5 ${accentClasses.text}`} />
             Books & Worldbuilder
           </span>
 

@@ -52,7 +52,7 @@ interface ResponsiveShellProps {
   onUpdateDoc: (doc: MarkdownDoc) => void;
   onSelectBookId: (id: string) => void;
   onOpenEntityDetail: (type: 'character' | 'location' | 'faction' | 'misc' | 'custom', id: string) => void;
-  onCreateEntity: (type: 'character' | 'location' | 'faction' | 'misc' | 'category') => void;
+  onCreateEntity: (type: 'character' | 'location' | 'faction' | 'event' | 'category' | string) => void;
   onDeleteCustomCategory?: (categoryId: string) => void;
   onDeleteCustomEntry?: (entryId: string) => void;
   onUpdateTimelineEvent?: (updated: TimelineEvent) => void;

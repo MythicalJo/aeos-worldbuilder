@@ -327,8 +327,76 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
             </div>
           )}
 
+          {/* EVENT FIELDS */}
+          {mode === 'event' && (
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-bold block mb-1">Year (Numeric)</label>
+                  <input
+                    type="number"
+                    value={year}
+                    onChange={(e) => setYear(Number(e.target.value))}
+                    className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none focus:border-indigo-500`}
+                  />
+                </div>
+                <div>
+                  <label className="font-bold block mb-1">Year Label</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Year 1420 TA"
+                    value={yearLabel}
+                    onChange={(e) => setYearLabel(e.target.value)}
+                    className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none focus:border-indigo-500`}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-bold block mb-1">Era</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. The Shattered Crown"
+                    value={era}
+                    onChange={(e) => setEra(e.target.value)}
+                    className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none focus:border-indigo-500`}
+                  />
+                </div>
+                <div>
+                  <label className="font-bold block mb-1">Event Type</label>
+                  <select
+                    value={eventType}
+                    onChange={(e) => setEventType(e.target.value as any)}
+                    className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none`}
+                  >
+                    <option value="Battle">Battle ⚔️</option>
+                    <option value="Coronation">Coronation 👑</option>
+                    <option value="Cataclysm">Cataclysm 🔥</option>
+                    <option value="Secret Treaty">Secret Treaty 📜</option>
+                    <option value="Discovery">Discovery 🧭</option>
+                    <option value="Magic Surge">Magic Surge ⚡</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="font-bold block mb-1">Associated Book</label>
+                <select
+                  value={bookId}
+                  onChange={(e) => setBookId(e.target.value)}
+                  className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none`}
+                >
+                  {books.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
           <div>
-            <label className="font-bold block mb-1">Description / Backstory</label>
+            <label className="font-bold block mb-1">Description / Summary</label>
             <textarea
               rows={3}
               value={description}

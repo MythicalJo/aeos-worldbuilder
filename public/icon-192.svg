@@ -1,8 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
-  <rect width="192" height="192" rx="40" fill="#09090b"/>
-  <rect width="192" height="192" rx="40" fill="none" stroke="#6366f1" stroke-width="4" opacity="0.3"/>
-  <path d="M48 56C48 47.1634 55.1634 40 64 40H128C136.837 40 144 47.1634 144 56V136C144 144.837 136.837 152 128 152H64C55.1634 152 48 144.837 48 136V56Z" fill="#18181b" stroke="#27272a" stroke-width="4"/>
-  <path d="M72 72H120M72 96H110M72 120H96" stroke="#4f46e5" stroke-width="6" stroke-linecap="round"/>
-  <path d="M125 65L145 45C148 42 152 42 155 45C158 48 158 52 155 55L135 75L125 65Z" fill="#6366f1"/>
-  <path d="M125 65L120 80L135 75L125 65Z" fill="#818cf8"/>
+  <rect width="192" height="192" rx="48" fill="#09090b"/>
+  <circle cx="96" cy="96" r="70" fill="none" stroke="#6366f1" stroke-width="3" opacity="0.3"/>
+  <path d="M96 24 L108 84 L168 96 L108 108 L96 168 L84 108 L24 96 L84 84 Z" fill="url(#starGrad)" />
+  <path d="M96 56 L102 90 L136 96 L102 102 L96 136 L90 102 L56 96 L90 90 Z" fill="#ffffff" opacity="0.85"/>
+  <defs>
+    <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818cf8" />
+      <stop offset="100%" stop-color="#4f46e5" />
+    </linearGradient>
+  </defs>
 </svg>

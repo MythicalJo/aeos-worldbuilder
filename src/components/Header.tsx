@@ -4,6 +4,7 @@ import { canInstallPWA, promptPWAInstall, isAppStandalone } from '../lib/pwa';
 import { exportFullDatabase, importFullDatabase, resetToDefaults, DatabaseDump } from '../lib/storage';
 import { useTheme, AppTheme, ACCENT_COLORS } from '../context/ThemeContext';
 import { useOutsideClick } from '../hooks/useOutsideClick';
+import { NorthStarIcon } from './NorthStarIcon';
 import {
   BookOpen,
   Search,
@@ -199,13 +200,13 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className="flex items-center gap-2">
           <div className={`w-6 h-6 ${accentClasses.bg} rounded flex items-center justify-center shrink-0 shadow-sm`}>
-            <Feather className="w-3.5 h-3.5 text-white" />
+            <NorthStarIcon className="w-3.5 h-3.5 text-white" />
           </div>
 
-          {/* Project Title */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[10px] uppercase font-bold tracking-wider opacity-60 hidden sm:inline">
-              Project:
+          {/* Project Title with Baseline Typography Alignment */}
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[10px] md:text-xs uppercase font-bold tracking-wider opacity-60 hidden sm:inline leading-none">
+              Project
             </span>
 
             {isEditingTitle ? (
@@ -232,13 +233,13 @@ export const Header: React.FC<HeaderProps> = ({
             ) : (
               <div
                 onClick={() => setIsEditingTitle(true)}
-                className="group flex items-center gap-1.5 cursor-pointer px-1.5 py-0.5 rounded hover:bg-black/10 transition-colors"
+                className="group flex items-center gap-1 cursor-pointer px-1.5 py-0.5 rounded hover:bg-black/10 transition-colors"
                 title="Click to Rename Active Project Title"
               >
-                <h1 className="text-xs md:text-sm font-bold tracking-tight truncate max-w-[150px] sm:max-w-[200px]">
+                <h1 className="text-xs md:text-sm font-bold tracking-tight truncate max-w-[150px] sm:max-w-[220px] leading-none">
                   {activeProject?.title || settings.seriesTitle || 'My Story Project'}
                 </h1>
-                <Edit2 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Edit2 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
               </div>
             )}
           </div>

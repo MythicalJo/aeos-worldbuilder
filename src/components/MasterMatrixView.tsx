@@ -37,7 +37,8 @@ export const MasterMatrixView: React.FC<MasterMatrixViewProps> = ({
   onClose,
   onSelectDoc
 }) => {
-  const { theme } = useTheme();
+  const { theme, getAccentClasses } = useTheme();
+  const accentClasses = getAccentClasses();
   const { navigateToCharacter, navigateToLocation, navigateToFaction } = useLoreContext();
 
   const [zoom, setZoom] = useState<number>(1);
@@ -251,7 +252,7 @@ export const MasterMatrixView: React.FC<MasterMatrixViewProps> = ({
     ? 'bg-[#ffffff] border-[#cbd5e1]'
     : 'bg-[#18181b] border-[#27272a]';
 
-  const accentColor = isSepia ? 'text-[#964b00]' : isLight ? 'text-indigo-600' : 'text-indigo-400';
+  const accentColor = isSepia ? 'text-[#964b00]' : accentClasses.text;
 
   return (
     <div className={`fixed inset-0 z-50 ${canvasBg} flex flex-col select-none overflow-hidden animate-in fade-in duration-200`}>
@@ -411,7 +412,7 @@ export const MasterMatrixView: React.FC<MasterMatrixViewProps> = ({
                   style={{ left: `${node.x}px`, top: `${node.y}px` }}
                   className={`matrix-card-action absolute w-64 p-3.5 rounded-xl border backdrop-blur-md shadow-xl transition-all duration-200 cursor-pointer ${
                     isSelected
-                      ? `${cardBg} border-indigo-500 ring-2 ring-indigo-500/50 scale-105 z-30 font-bold`
+                      ? `${cardBg} ${accentClasses.border} ring-2 ring-indigo-500/50 scale-105 z-30 font-bold`
                       : `${cardBg} opacity-90 hover:opacity-100 hover:scale-[1.02]`
                   }`}
                 >
