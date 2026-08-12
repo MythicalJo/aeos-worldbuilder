@@ -53,6 +53,17 @@ import { initPWA } from './lib/pwa';
 import { LoreProvider } from './context/LoreContext';
 import { ThemeProvider } from './context/ThemeContext';
 
+function mergeById<T extends { id: string }>(primary: T[], fallback: T[]): T[] {
+  const map = new Map<string, T>();
+  (fallback || []).forEach((item) => {
+    if (item && item.id) map.set(item.id, item);
+  });
+  (primary || []).forEach((item) => {
+    if (item && item.id) map.set(item.id, item);
+  });
+  return Array.from(map.values());
+}
+
 export default function App() {
   // Initialize PWA Service Worker registration
   useEffect(() => {
@@ -91,26 +102,43 @@ export default function App() {
   const [activeDocId, setActiveDocId] = useState<string>(loadActiveDocId);
   const [openDocIds, setOpenDocIds] = useState<string[]>(['doc-1', 'doc-2']);
 
-  // Load from IndexedDB on startup & sanitize/recover
+  // Load from IndexedDB on startup & safely merge with localStorage to prevent data loss
   useEffect(() => {
     idbLoadAllData()
       .then((data) => {
         if (data) {
           if (data.settings) setSettings(data.settings);
-          if (data.books && data.books.length > 0) setBooks(data.books);
-          if (data.factions) setFactions(data.factions);
-          if (data.characters) setCharacters(data.characters);
-          if (data.locations) setLocations(data.locations);
-          if (data.timeline) setTimeline(data.timeline);
-          if (data.docs && data.docs.length > 0) {
-            const recovered = sanitizeAndRecoverDocs(data.docs, projects, books);
-            setDocs(recovered);
-          }
-          if (data.customEntries && data.customCategories) {
-            const { entries, categories } = migrateLegacyMiscEntries(data.customEntries, data.customCategories);
-            setCustomEntries(entries);
-            setCustomCategories(categories);
-          }
+          
+          const localBooks = loadBooks();
+          const mergedBooks = mergeById(localBooks, data.books || []);
+          if (mergedBooks.length > 0) setBooks(mergedBooks);
+
+          const localFactions = loadFactions();
+          setFactions(mergeById(localFactions, data.factions || []));
+
+          const localChars = loadCharacters();
+          setCharacters(mergeById(localChars, data.characters || []));
+
+          const localLocs = loadLocations();
+          setLocations(mergeById(localLocs, data.locations || []));
+
+          const localTimeline = loadTimeline();
+          setTimeline(mergeById(localTimeline, data.timeline || []));
+
+          const localDocs = loadDocs();
+          const combinedDocs = mergeById(localDocs, data.docs || []);
+          const recoveredDocs = sanitizeAndRecoverDocs(combinedDocs, projects, mergedBooks);
+          setDocs(recoveredDocs);
+
+          const localCats = loadCustomCategories();
+          const combinedCats = mergeById(localCats, data.customCategories || []);
+          const localEntries = loadCustomEntries();
+          const combinedEntries = mergeById(localEntries, data.customEntries || []);
+
+          const { entries, categories } = migrateLegacyMiscEntries(combinedEntries, combinedCats);
+          setCustomEntries(entries);
+          setCustomCategories(categories);
+
           if (data.activeDocId) setActiveDocId(data.activeDocId);
         }
       })

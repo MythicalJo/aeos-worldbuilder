@@ -72,7 +72,7 @@ export const ProjectManagerModal: React.FC<ProjectManagerModalProps> = ({
     title: string;
   } | null>(null);
 
-  useOutsideClick(modalRef, onClose, isOpen);
+  useOutsideClick(modalRef, onClose, isOpen && !confirmDeleteState);
 
   if (!isOpen) return null;
 
@@ -431,6 +431,7 @@ export const ProjectManagerModal: React.FC<ProjectManagerModalProps> = ({
           onConfirm={() => {
             if (confirmDeleteState.type === 'project') onDeleteProject(confirmDeleteState.id);
             else onDeleteBook(confirmDeleteState.id);
+            setConfirmDeleteState(null);
           }}
         />
       )}

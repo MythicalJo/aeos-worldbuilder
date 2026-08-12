@@ -73,9 +73,11 @@ export function parseWikiLinksToHTML(
       </span>`;
     });
 
-    return marked.parse(processed) as string;
+    const parsedHtml = marked.parse(processed, { async: false });
+    return typeof parsedHtml === 'string' ? parsedHtml : processed;
   } catch (err) {
     console.error('Wiki markdown parse error:', err);
-    return marked.parse(rawMarkdown) as string;
+    const fallback = marked.parse(rawMarkdown, { async: false });
+    return typeof fallback === 'string' ? fallback : rawMarkdown;
   }
 }
