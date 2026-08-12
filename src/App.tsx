@@ -3,7 +3,6 @@ import { Header } from './components/Header';
 import { ResponsiveShell } from './components/ResponsiveShell';
 import { QuickSearchModal } from './components/QuickSearchModal';
 import { EntityDetailModal } from './components/EntityDetailModal';
-import { AIAssistantModal } from './components/AIAssistantModal';
 import { CreateEntityModal } from './components/CreateEntityModal';
 
 import {
@@ -80,11 +79,10 @@ export default function App() {
 
   // Sidebar Toggles for Header controls
   const [leftSidebarOpen, setLeftSidebarOpen] = useState<boolean>(true);
-  const [rightSidebarOpen, setRightSidebarOpen] = useState<boolean>(true);
+  const [rightSidebarOpen, setRightSidebarOpen] = useState<boolean>(false);
 
   // Modals state
   const [searchOpen, setSearchOpen] = useState<boolean>(false);
-  const [aiAssistantOpen, setAiAssistantOpen] = useState<boolean>(false);
 
   // Entity Detail Modal state
   const [inspectType, setInspectType] = useState<'character' | 'location' | 'faction' | null>(null);
@@ -92,6 +90,12 @@ export default function App() {
 
   // Create Entity Modal state
   const [createMode, setCreateMode] = useState<'character' | 'location' | 'faction' | 'event' | null>(null);
+
+  // Settings update handler
+  const handleUpdateSettings = (newSettings: WorldSettings) => {
+    setSettings(newSettings);
+    saveSettings(newSettings);
+  };
 
   // Refresh data from local storage & IndexedDB
   const handleRefreshData = () => {
@@ -147,13 +151,13 @@ export default function App() {
     const newDocId = `doc-${Date.now()}`;
     const newDocItem: MarkdownDoc = {
       id: newDocId,
-      title: 'Untitled Lore Note',
-      category: 'Lore',
-      content: `# Untitled Lore Note\n\nStart drafting worldbuilding details, character profiles, or chapter notes...\n`,
+      title: 'New Chapter Draft',
+      category: 'Chapter Draft',
+      content: `# New Chapter\n\nBegin writing chapter prose or manuscript notes...\n`,
       linkedEntityIds: [],
-      tags: ['draft'],
+      tags: ['chapter'],
       updatedAt: new Date().toISOString().split('T')[0],
-      wordCount: 12
+      wordCount: 8
     };
 
     const nextDocs = [newDocItem, ...docs];
@@ -225,48 +229,17 @@ export default function App() {
     }
   };
 
-  // AI Assistant helpers
-  const activeDoc = docs.find((d) => d.id === activeDocId);
-
-  const handleAppendAIToActiveDoc = (aiText: string) => {
-    if (!activeDoc) return;
-    const updatedContent = activeDoc.content + aiText;
-    handleUpdateDoc({ ...activeDoc, content: updatedContent });
-  };
-
-  const handleCreateDocFromAI = (docTitle: string, aiText: string) => {
-    const newDocId = `doc-${Date.now()}`;
-    const newDocItem: MarkdownDoc = {
-      id: newDocId,
-      title: docTitle,
-      category: 'Lore',
-      content: aiText,
-      linkedEntityIds: [],
-      tags: ['ai-generated', 'lore'],
-      updatedAt: new Date().toISOString().split('T')[0],
-      wordCount: aiText.trim().split(/\s+/).length
-    };
-
-    const nextDocs = [newDocItem, ...docs];
-    setDocs(nextDocs);
-    saveDocs(nextDocs);
-
-    setActiveDocId(newDocId);
-    saveActiveDocId(newDocId);
-    setOpenDocIds([...openDocIds, newDocId]);
-  };
-
   return (
     <LoreProvider>
-      <div className="flex flex-col h-screen w-screen bg-slate-950 font-sans text-slate-100 overflow-hidden select-none">
+      <div className="flex flex-col h-screen w-screen bg-[#0c0c0e] font-sans text-[#e4e4e7] overflow-hidden select-none">
         {/* App Header */}
         <Header
           settings={settings}
+          onUpdateSettings={handleUpdateSettings}
           books={books}
           selectedBookId={selectedBookId}
           onSelectBookId={setSelectedBookId}
           onOpenSearch={() => setSearchOpen(true)}
-          onOpenAIAssistant={() => setAiAssistantOpen(true)}
           leftSidebarOpen={leftSidebarOpen}
           onToggleLeftSidebar={() => setLeftSidebarOpen(!leftSidebarOpen)}
           rightSidebarOpen={rightSidebarOpen}
@@ -275,7 +248,7 @@ export default function App() {
           onNewDoc={handleNewDoc}
         />
 
-        {/* Main Responsive Shell Layout (Mobile 4-Tab Bottom Bar vs PC Multi-Pane) */}
+        {/* Main Responsive Shell Layout */}
         <ResponsiveShell
           settings={settings}
           books={books}
@@ -287,6 +260,8 @@ export default function App() {
           selectedBookId={selectedBookId}
           activeDocId={activeDocId}
           openDocIds={openDocIds}
+          leftSidebarOpen={leftSidebarOpen}
+          rightSidebarOpen={rightSidebarOpen}
           onSelectDoc={handleSelectDoc}
           onCloseDocTab={handleCloseDocTab}
           onNewDoc={handleNewDoc}
@@ -298,7 +273,6 @@ export default function App() {
           }}
           onCreateEntity={(type) => setCreateMode(type)}
           onRefreshData={handleRefreshData}
-          onOpenAIAssistant={() => setAiAssistantOpen(true)}
         />
 
         {/* Global Quick Search Modal */}
@@ -338,15 +312,6 @@ export default function App() {
           onSelectDoc={handleSelectDoc}
         />
 
-        {/* AI Worldbuilding Generator Modal */}
-        <AIAssistantModal
-          isOpen={aiAssistantOpen}
-          onClose={() => setAiAssistantOpen(false)}
-          activeDocTitle={activeDoc?.title}
-          onAppendContentToActiveDoc={handleAppendAIToActiveDoc}
-          onCreateDocFromAI={handleCreateDocFromAI}
-        />
-
         {/* Entity Creation Modal */}
         <CreateEntityModal
           mode={createMode}
@@ -365,4 +330,3 @@ export default function App() {
     </LoreProvider>
   );
 }
-

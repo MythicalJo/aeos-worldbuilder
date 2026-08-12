@@ -5,28 +5,25 @@ import { exportFullDatabase, importFullDatabase, resetToDefaults, DatabaseDump }
 import {
   BookOpen,
   Search,
-  Sparkles,
   Download,
   Upload,
   RotateCcw,
-  Smartphone,
-  CheckCircle2,
-  Wifi,
-  WifiOff,
   PanelLeft,
   PanelRight,
   Plus,
   Sliders,
-  Feather
+  Feather,
+  Edit2,
+  Check
 } from 'lucide-react';
 
 interface HeaderProps {
   settings: WorldSettings;
+  onUpdateSettings: (settings: WorldSettings) => void;
   books: Book[];
   selectedBookId: string;
   onSelectBookId: (id: string) => void;
   onOpenSearch: () => void;
-  onOpenAIAssistant: () => void;
   leftSidebarOpen: boolean;
   onToggleLeftSidebar: () => void;
   rightSidebarOpen: boolean;
@@ -37,11 +34,11 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   settings,
+  onUpdateSettings,
   books,
   selectedBookId,
   onSelectBookId,
   onOpenSearch,
-  onOpenAIAssistant,
   leftSidebarOpen,
   onToggleLeftSidebar,
   rightSidebarOpen,
@@ -54,6 +51,14 @@ export const Header: React.FC<HeaderProps> = ({
   const [installed, setInstalled] = useState<boolean>(isAppStandalone());
   const [showSettingsMenu, setShowSettingsMenu] = useState<boolean>(false);
 
+  // Editable Project Title state
+  const [isEditingTitle, setIsEditingTitle] = useState<boolean>(false);
+  const [projectTitle, setProjectTitle] = useState<string>(settings.seriesTitle || 'My Novel Project');
+
+  useEffect(() => {
+    setProjectTitle(settings.seriesTitle);
+  }, [settings.seriesTitle]);
+
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -61,7 +66,6 @@ export const Header: React.FC<HeaderProps> = ({
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Check PWA install status
     const interval = setInterval(() => {
       setPwaInstallable(canInstallPWA());
       setInstalled(isAppStandalone());
@@ -73,6 +77,16 @@ export const Header: React.FC<HeaderProps> = ({
       clearInterval(interval);
     };
   }, []);
+
+  const handleSaveTitle = () => {
+    setIsEditingTitle(false);
+    if (projectTitle.trim() && projectTitle !== settings.seriesTitle) {
+      onUpdateSettings({
+        ...settings,
+        seriesTitle: projectTitle.trim()
+      });
+    }
+  };
 
   const handlePWAInstall = async () => {
     const installedSuccess = await promptPWAInstall();
@@ -88,7 +102,7 @@ export const Header: React.FC<HeaderProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${settings.seriesTitle.toLowerCase().replace(/\s+/g, '_')}_world_bible.json`;
+    a.download = `${settings.seriesTitle.toLowerCase().replace(/\s+/g, '_')}_backup.json`;
     a.click();
     URL.revokeObjectURL(url);
     setShowSettingsMenu(false);
@@ -105,9 +119,9 @@ export const Header: React.FC<HeaderProps> = ({
         const success = importFullDatabase(dump);
         if (success) {
           onRefreshData();
-          alert('Worldbuilding database imported successfully!');
+          alert('Project data imported successfully!');
         } else {
-          alert('Failed to parse database dump.');
+          alert('Failed to parse file.');
         }
       } catch {
         alert('Invalid JSON file format.');
@@ -118,7 +132,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const handleReset = () => {
-    if (confirm('Reset entire worldbuilding bible to default template data? Custom changes will be overwritten.')) {
+    if (confirm('Reset project data to template defaults?')) {
       resetToDefaults();
       onRefreshData();
       setShowSettingsMenu(false);
@@ -127,11 +141,11 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="h-12 bg-[#09090b] border-b border-[#27272a] flex items-center justify-between px-3 md:px-4 z-30 shrink-0 select-none">
-      {/* Left section: Sidebar toggle, Logo & Title */}
+      {/* Left section: Sidebar toggle, Logo & Editable Project Title */}
       <div className="flex items-center gap-2 md:gap-3">
         <button
           onClick={onToggleLeftSidebar}
-          title="Toggle Entity Database (Left Sidebar)"
+          title="Toggle Navigation / Chapter Drawer (Left Sidebar)"
           className={`p-1.5 rounded text-[#a1a1aa] hover:text-white hover:bg-[#18181b] transition-colors ${
             leftSidebarOpen ? 'bg-[#18181b] text-indigo-400' : ''
           }`}
@@ -139,22 +153,55 @@ export const Header: React.FC<HeaderProps> = ({
           <PanelLeft className="w-4 h-4" />
         </button>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <div className="w-6 h-6 bg-indigo-600 rounded flex items-center justify-center shrink-0 shadow-sm">
             <Feather className="w-3.5 h-3.5 text-white" />
           </div>
-          <div className="flex items-center">
-            <h1 className="text-xs md:text-sm font-semibold tracking-tight text-white flex items-center">
-              <span>{settings.seriesTitle}</span>
-              <span className="hidden sm:inline text-[#71717a] font-normal ml-2 text-xs">
-                • Worldbuilding Bible
-              </span>
-            </h1>
+
+          {/* Unambiguous Editable Project Title */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] uppercase font-bold text-[#71717a] tracking-wider hidden sm:inline">
+              Project:
+            </span>
+
+            {isEditingTitle ? (
+              <div className="flex items-center gap-1">
+                <input
+                  type="text"
+                  value={projectTitle}
+                  onChange={(e) => setProjectTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveTitle();
+                  }}
+                  onBlur={handleSaveTitle}
+                  autoFocus
+                  className="bg-[#18181b] text-white text-xs md:text-sm font-semibold px-2 py-0.5 rounded border border-indigo-500 focus:outline-none"
+                />
+                <button
+                  onClick={handleSaveTitle}
+                  className="p-1 text-emerald-400 hover:bg-[#18181b] rounded"
+                  title="Save Title"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div
+                onClick={() => setIsEditingTitle(true)}
+                className="group flex items-center gap-1.5 cursor-pointer px-1.5 py-0.5 rounded hover:bg-[#18181b] transition-colors"
+                title="Click to Rename Project Title"
+              >
+                <h1 className="text-xs md:text-sm font-bold tracking-tight text-white truncate max-w-[160px] sm:max-w-[240px]">
+                  {settings.seriesTitle || 'Untitled Book Project'}
+                </h1>
+                <Edit2 className="w-3 h-3 text-[#71717a] group-hover:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Book Filter Dropdown */}
-        <div className="hidden sm:flex items-center gap-1 ml-2 bg-[#18181b] border border-[#27272a] rounded px-2 py-0.5 text-xs">
+        {/* Book Selector */}
+        <div className="hidden md:flex items-center gap-1 ml-2 bg-[#18181b] border border-[#27272a] rounded px-2 py-0.5 text-xs">
           <BookOpen className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
           <select
             value={selectedBookId}
@@ -162,19 +209,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="bg-transparent text-[#e4e4e7] text-xs py-0.5 px-1 focus:outline-none cursor-pointer"
           >
             <option value="all" className="bg-[#09090b] text-[#e4e4e7]">
-              All Books
-            </option>
-            <option value="Trilogy Book 1" className="bg-[#09090b] text-[#e4e4e7]">
-              Trilogy Book 1
-            </option>
-            <option value="Standalone A" className="bg-[#09090b] text-[#e4e4e7]">
-              Standalone A
-            </option>
-            <option value="Trilogy Book 2" className="bg-[#09090b] text-[#e4e4e7]">
-              Trilogy Book 2
-            </option>
-            <option value="Trilogy Book 3" className="bg-[#09090b] text-[#e4e4e7]">
-              Trilogy Book 3
+              All Story Books
             </option>
             {books.map((b) => (
               <option key={b.id} value={b.id} className="bg-[#09090b] text-[#e4e4e7]">
@@ -187,11 +222,11 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Middle & Right Section: Actions */}
       <div className="flex items-center gap-2">
-        {/* Global Search Button */}
+        {/* Quick Search Button */}
         <button
           onClick={onOpenSearch}
           className="flex items-center gap-1.5 bg-[#18181b] hover:bg-[#27272a] text-[#a1a1aa] hover:text-white px-2.5 py-1 rounded border border-[#27272a] text-xs transition-colors"
-          title="Search Entities, Notes & Events (Ctrl+K)"
+          title="Search Notes & Story Bible (Ctrl+K)"
         >
           <Search className="w-3.5 h-3.5 text-indigo-400" />
           <span className="hidden md:inline font-medium">Quick search...</span>
@@ -200,24 +235,14 @@ export const Header: React.FC<HeaderProps> = ({
           </kbd>
         </button>
 
-        {/* New Doc Shortcut */}
+        {/* New Chapter / Document Button */}
         <button
           onClick={onNewDoc}
           className="hidden sm:flex items-center gap-1 bg-[#18181b] hover:bg-[#27272a] text-[#e4e4e7] px-2.5 py-1 rounded text-xs font-medium border border-[#27272a] transition-colors"
-          title="Create New Note"
+          title="Create New Chapter / Document"
         >
           <Plus className="w-3.5 h-3.5 text-indigo-400" />
-          <span className="hidden md:inline">New Note</span>
-        </button>
-
-        {/* AI Lore Assistant */}
-        <button
-          onClick={onOpenAIAssistant}
-          className="flex items-center gap-1 bg-indigo-950/60 hover:bg-indigo-900/80 text-indigo-300 border border-indigo-500/40 px-2.5 py-1 rounded text-xs font-medium transition-all"
-          title="AI Worldbuilding Lore Generator"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-          <span className="hidden sm:inline">AI Lore</span>
+          <span className="hidden md:inline">New Chapter</span>
         </button>
 
         {/* PWA Ready Badge & Install Button */}
@@ -232,18 +257,18 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={handlePWAInstall}
             className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-medium transition-colors shadow-sm"
-            title="Install App on Desktop / Mobile"
+            title="Install Writing App"
           >
             Install App
           </button>
         )}
 
-        {/* Database Settings Menu */}
+        {/* Database / Backup Menu */}
         <div className="relative">
           <button
             onClick={() => setShowSettingsMenu(!showSettingsMenu)}
             className="p-1.5 rounded text-[#a1a1aa] hover:text-white hover:bg-[#18181b] transition-colors"
-            title="Database Import / Export / Backup"
+            title="Import / Export Data Backup"
           >
             <Sliders className="w-4 h-4" />
           </button>
@@ -251,7 +276,7 @@ export const Header: React.FC<HeaderProps> = ({
           {showSettingsMenu && (
             <div className="absolute right-0 mt-2 w-52 bg-[#09090b] border border-[#27272a] rounded shadow-2xl p-1.5 z-50 text-xs space-y-1">
               <div className="px-2 py-1 text-[10px] uppercase font-bold text-[#71717a] border-b border-[#27272a]">
-                Database Backup
+                Data Backup
               </div>
 
               <button
@@ -259,12 +284,12 @@ export const Header: React.FC<HeaderProps> = ({
                 className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-[#e4e4e7] hover:bg-[#18181b] hover:text-indigo-400 text-left"
               >
                 <Download className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Export Bible (.json)</span>
+                <span>Export Project (.json)</span>
               </button>
 
               <label className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-[#e4e4e7] hover:bg-[#18181b] hover:text-indigo-400 text-left cursor-pointer">
                 <Upload className="w-3.5 h-3.5 text-sky-400" />
-                <span>Import Bible (.json)</span>
+                <span>Import Project (.json)</span>
                 <input type="file" accept=".json" onChange={handleImportJSON} className="hidden" />
               </label>
 
@@ -273,16 +298,16 @@ export const Header: React.FC<HeaderProps> = ({
                 className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-rose-400 hover:bg-rose-950/40 text-left"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset Seed Data</span>
+                <span>Reset to Seed Data</span>
               </button>
             </div>
           )}
         </div>
 
-        {/* Right Sidebar toggle */}
+        {/* Story Bible Side Drawer Toggle */}
         <button
           onClick={onToggleRightSidebar}
-          title="Toggle Chronological Timeline (Right Sidebar)"
+          title="Toggle Story Bible Reference Drawer (Right Sidebar)"
           className={`p-1.5 rounded text-[#a1a1aa] hover:text-white hover:bg-[#18181b] transition-colors ${
             rightSidebarOpen ? 'bg-[#18181b] text-indigo-400' : ''
           }`}
