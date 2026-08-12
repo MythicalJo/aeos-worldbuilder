@@ -15,9 +15,7 @@ import {
   Heading1,
   Heading2,
   List,
-  ListOrdered,
   Quote,
-  Code,
   Link as LinkIcon,
   Download,
   CheckCircle2,
@@ -27,7 +25,8 @@ import {
   Maximize2,
   Minimize2,
   Undo2,
-  Redo2
+  Redo2,
+  Trash2
 } from 'lucide-react';
 
 interface CenterCanvasProps {
@@ -39,6 +38,7 @@ interface CenterCanvasProps {
   factions: Faction[];
   onSelectDoc: (id: string) => void;
   onCloseDocTab: (id: string) => void;
+  onDeleteDoc?: (id: string) => void;
   onNewDoc: () => void;
   onUpdateDoc: (updatedDoc: MarkdownDoc) => void;
   onOpenEntityDetail: (type: 'character' | 'location' | 'faction', id: string) => void;
@@ -53,6 +53,7 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
   factions,
   onSelectDoc,
   onCloseDocTab,
+  onDeleteDoc,
   onNewDoc,
   onUpdateDoc,
   onOpenEntityDetail
@@ -83,7 +84,6 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const linkDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Auto-close link popover on outside click
   useOutsideClick(linkDropdownRef, () => setShowLinkDropdown(false), showLinkDropdown);
 
   const updateUndoRedoState = () => {
@@ -132,7 +132,6 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
     }
   }, [activeDocId]);
 
-  // Handle Keyboard Shortcuts for Undo/Redo & Shortcuts
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
       if (e.shiftKey) {
@@ -148,7 +147,7 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
     }
   };
 
-  // Debounced auto-save & history snapshot
+  // Auto-save & history snapshot
   useEffect(() => {
     if (!activeDoc) return;
     setIsSaving(true);
@@ -170,7 +169,6 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
     return () => clearTimeout(timer);
   }, [content, title, category, tags]);
 
-  // Formatting tools
   const insertTextAtCursor = (prefix: string, suffix: string = '') => {
     if (!textareaRef.current) return;
     const textarea = textareaRef.current;
@@ -279,7 +277,6 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
       ? 'font-mono'
       : 'font-sans';
 
-  // Theme styling definitions
   const isSepia = theme === 'sepia';
   const isLight = theme === 'light';
 
@@ -308,9 +305,9 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
       <main className={`flex-1 ${containerBg} flex items-center justify-center p-6 select-none`}>
         <div className="text-center space-y-3">
           <FileText className="w-12 h-12 opacity-40 mx-auto" />
-          <h3 className="text-base font-semibold">No Document Selected</h3>
+          <h3 className="text-base font-semibold">No Chapter / Document Selected</h3>
           <p className="text-xs opacity-70">
-            Select a manuscript chapter or reference note from the navigation drawer.
+            Select a manuscript chapter or reference note from the sidebar.
           </p>
           <button
             onClick={onNewDoc}
@@ -339,7 +336,7 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
                 onClick={() => onSelectDoc(id)}
                 className={`group flex items-center gap-2 px-3 py-1.5 rounded-t border-t border-x text-xs cursor-pointer transition-all shrink-0 select-none ${
                   isActive
-                    ? `${containerBg} border-[#27272a] ${accentColor} font-bold shadow-sm`
+                    ? `${containerBg} border-current/20 ${accentColor} font-bold shadow-sm`
                     : 'opacity-70 hover:opacity-100 hover:bg-black/10'
                 }`}
               >
@@ -387,7 +384,7 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value as MarkdownDoc['category'])}
-              className={`${cardBg} text-xs rounded px-2 py-1 focus:outline-none cursor-pointer`}
+              className={`${cardBg} text-xs rounded px-2 py-1 focus:outline-none cursor-pointer border`}
             >
               <option value="Chapter Draft">Chapter Draft</option>
               <option value="Lore">Lore & World</option>
@@ -398,46 +395,58 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
             </select>
           </div>
 
-          {/* View Mode Switcher */}
-          <div className={`flex items-center gap-1 ${cardBg} p-0.5 rounded text-xs`}>
-            <button
-              onClick={() => setViewMode('edit')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded transition-colors ${
-                viewMode === 'edit'
-                  ? `${containerBg} ${accentColor} font-bold shadow-sm`
-                  : 'opacity-70 hover:opacity-100'
-              }`}
-              title="Editor Write Mode"
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>Write</span>
-            </button>
+          {/* View Mode & Delete Chapter Controls */}
+          <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-1 ${cardBg} p-0.5 rounded border text-xs`}>
+              <button
+                onClick={() => setViewMode('edit')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded transition-colors ${
+                  viewMode === 'edit'
+                    ? `${containerBg} ${accentColor} font-bold shadow-sm`
+                    : 'opacity-70 hover:opacity-100'
+                }`}
+                title="Editor Write Mode"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>Write</span>
+              </button>
 
-            <button
-              onClick={() => setViewMode('split')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded transition-colors ${
-                viewMode === 'split'
-                  ? `${containerBg} ${accentColor} font-bold shadow-sm`
-                  : 'opacity-70 hover:opacity-100'
-              }`}
-              title="Split Write & Preview"
-            >
-              <Columns className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Split</span>
-            </button>
+              <button
+                onClick={() => setViewMode('split')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded transition-colors ${
+                  viewMode === 'split'
+                    ? `${containerBg} ${accentColor} font-bold shadow-sm`
+                    : 'opacity-70 hover:opacity-100'
+                }`}
+                title="Split Write & Preview"
+              >
+                <Columns className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Split</span>
+              </button>
 
-            <button
-              onClick={() => setViewMode('preview')}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded transition-colors ${
-                viewMode === 'preview'
-                  ? `${containerBg} ${accentColor} font-bold shadow-sm`
-                  : 'opacity-70 hover:opacity-100'
-              }`}
-              title="Reading Preview Mode"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              <span>Read</span>
-            </button>
+              <button
+                onClick={() => setViewMode('preview')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded transition-colors ${
+                  viewMode === 'preview'
+                    ? `${containerBg} ${accentColor} font-bold shadow-sm`
+                    : 'opacity-70 hover:opacity-100'
+                }`}
+                title="Reading Preview Mode"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>Read</span>
+              </button>
+            </div>
+
+            {onDeleteDoc && (
+              <button
+                onClick={() => onDeleteDoc(activeDocId)}
+                className={`p-1.5 rounded border ${cardBg} opacity-70 hover:opacity-100 hover:text-rose-500 transition-colors`}
+                title="Delete Chapter Draft"
+              >
+                <Trash2 className="w-4 h-4 text-rose-500" />
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -446,7 +455,7 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
       {!isFocusMode && viewMode !== 'preview' && (
         <div className={`${headerBg} border-b px-3 py-1 flex flex-wrap items-center justify-between gap-2 shrink-0 text-xs`}>
           <div className="flex items-center gap-1 flex-wrap">
-            {/* Undo / Redo Buttons */}
+            {/* Undo / Redo */}
             <button
               onClick={handleUndo}
               disabled={!canUndo}
@@ -471,7 +480,7 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
             <div className="w-px h-4 opacity-30 bg-current mx-1" />
 
             {/* Font Family Selector */}
-            <div className={`flex items-center gap-1 ${cardBg} rounded px-2 py-0.5 text-xs`}>
+            <div className={`flex items-center gap-1 ${cardBg} border rounded px-2 py-0.5 text-xs`}>
               <Type className={`w-3.5 h-3.5 ${accentColor} shrink-0`} />
               <select
                 value={fontFamily}
@@ -485,7 +494,7 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
             </div>
 
             {/* Font Size Selector */}
-            <div className={`flex items-center gap-1 ${cardBg} rounded px-2 py-0.5 text-xs`}>
+            <div className={`flex items-center gap-1 ${cardBg} border rounded px-2 py-0.5 text-xs`}>
               <span className="opacity-70 text-[11px] font-bold">Size:</span>
               <select
                 value={fontSize}
@@ -549,12 +558,12 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
 
             <div className="w-px h-4 opacity-30 bg-current mx-1" />
 
-            {/* Modern Reference Link Inserter */}
+            {/* Link Inserter */}
             <div className="relative" ref={linkDropdownRef}>
               <button
                 onClick={() => setShowLinkDropdown(!showLinkDropdown)}
-                className={`flex items-center gap-1 px-2.5 py-0.5 ${cardBg} ${accentColor} font-semibold rounded text-xs transition-colors`}
-                title="Insert Reference Link to Character or World Place"
+                className={`flex items-center gap-1 px-2.5 py-0.5 ${cardBg} border ${accentColor} font-semibold rounded text-xs transition-colors`}
+                title="Insert Reference Link to Character or Place"
               >
                 <LinkIcon className="w-3 h-3" />
                 <span>Insert Link</span>
@@ -627,7 +636,7 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
           </span>
           <button
             onClick={() => setIsFocusMode(false)}
-            className={`flex items-center gap-1 px-2.5 py-0.5 ${cardBg} rounded transition-colors font-medium`}
+            className={`flex items-center gap-1 px-2.5 py-0.5 ${cardBg} border rounded transition-colors font-medium`}
           >
             <Minimize2 className="w-3.5 h-3.5" />
             <span>Exit Focus</span>
@@ -640,8 +649,8 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
         {/* EDIT PANE */}
         {(viewMode === 'edit' || viewMode === 'split') && (
           <div
-            className={`flex-1 flex flex-col h-full p-6 md:p-10 max-w-4xl mx-auto w-full ${
-              viewMode === 'split' ? 'border-r border-current opacity-20' : ''
+            className={`h-full flex flex-col p-4 md:p-8 ${
+              viewMode === 'split' ? 'w-1/2 border-r border-current/15' : 'w-full max-w-4xl mx-auto'
             }`}
           >
             <textarea
@@ -649,7 +658,7 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
               value={content}
               onChange={(e) => setContent(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Begin writing your manuscript chapter or world notes..."
+              placeholder="Begin writing your manuscript chapter..."
               style={{ fontSize: `${fontSize}px` }}
               className={`w-full h-full bg-transparent ${fontStyleClass} leading-relaxed resize-none focus:outline-none p-2 border-none`}
             />
@@ -661,8 +670,10 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
           <div
             onClick={handlePreviewClick}
             style={{ fontSize: `${fontSize}px` }}
-            className={`flex-1 h-full overflow-y-auto p-6 md:p-10 max-w-4xl mx-auto w-full ${fontStyleClass} prose ${
-              isSepia ? 'prose-amber' : isLight ? 'prose-slate' : 'prose-invert'
+            className={`h-full overflow-y-auto p-4 md:p-8 ${
+              viewMode === 'split' ? 'w-1/2' : 'w-full max-w-4xl mx-auto'
+            } ${fontStyleClass} prose ${
+              isSepia ? 'prose-amber text-[#433422]' : isLight ? 'prose-slate text-[#0f172a]' : 'prose-invert text-[#e4e4e7]'
             } prose-headings:font-bold prose-p:leading-relaxed`}
           >
             <div
@@ -696,7 +707,7 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
             {tags.map((t) => (
               <span
                 key={t}
-                className={`${cardBg} px-1.5 py-0.2 rounded text-[10px] flex items-center gap-1`}
+                className={`${cardBg} border px-1.5 py-0.2 rounded text-[10px] flex items-center gap-1`}
               >
                 #{t}
                 <button onClick={() => handleRemoveTag(t)} className="hover:text-rose-500">

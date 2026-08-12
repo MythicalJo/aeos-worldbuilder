@@ -55,7 +55,7 @@ export default function App() {
   const [timeline, setTimeline] = useState<TimelineEvent[]>(loadTimeline);
   const [docs, setDocs] = useState<MarkdownDoc[]>(loadDocs);
 
-  const [selectedBookId, setSelectedBookId] = useState<string>('all');
+  const [selectedBookId, setSelectedBookId] = useState<string>('book-1');
   const [activeDocId, setActiveDocId] = useState<string>(loadActiveDocId);
   const [openDocIds, setOpenDocIds] = useState<string[]>(['doc-1', 'doc-2', 'doc-3']);
 
@@ -65,7 +65,7 @@ export default function App() {
       .then((data) => {
         if (data) {
           if (data.settings) setSettings(data.settings);
-          if (data.books) setBooks(data.books);
+          if (data.books && data.books.length > 0) setBooks(data.books);
           if (data.factions) setFactions(data.factions);
           if (data.characters) setCharacters(data.characters);
           if (data.locations) setLocations(data.locations);
@@ -100,7 +100,49 @@ export default function App() {
     saveSettings(newSettings);
   };
 
-  // Project / Book Management Handlers
+  // Real Project Selection Flow (Choose Book -> See Chapters -> Write)
+  const handleSelectBook = (bookId: string) => {
+    setSelectedBookId(bookId);
+
+    // Update active series title to match book
+    const matchedBook = books.find((b) => b.id === bookId);
+    if (matchedBook) {
+      handleUpdateSettings({
+        ...settings,
+        seriesTitle: matchedBook.title
+      });
+    }
+
+    // Filter chapters belonging to this project
+    const scopedDocs = docs.filter((d) => !d.bookId || d.bookId === bookId || bookId === 'all');
+    if (scopedDocs.length > 0) {
+      setActiveDocId(scopedDocs[0].id);
+      saveActiveDocId(scopedDocs[0].id);
+      setOpenDocIds([scopedDocs[0].id]);
+    } else {
+      // Auto-create Chapter 1 for empty project
+      const chapterId = `doc-ch1-${Date.now()}`;
+      const newChapter: MarkdownDoc = {
+        id: chapterId,
+        bookId,
+        title: 'Chapter 1: The Beginning',
+        category: 'Chapter Draft',
+        content: `# Chapter 1: The Beginning\n\nBegin writing chapter prose for ${matchedBook ? matchedBook.title : 'this story'}...\n`,
+        linkedEntityIds: [],
+        tags: ['chapter'],
+        updatedAt: new Date().toISOString().split('T')[0],
+        wordCount: 10
+      };
+      const nextDocs = [newChapter, ...docs];
+      setDocs(nextDocs);
+      saveDocs(nextDocs);
+      setActiveDocId(chapterId);
+      saveActiveDocId(chapterId);
+      setOpenDocIds([chapterId]);
+    }
+  };
+
+  // Create New Project Flow
   const handleCreateBook = (title: string, description: string) => {
     const newBookId = `book-${Date.now()}`;
     const newBook: Book = {
@@ -120,7 +162,34 @@ export default function App() {
     const nextBooks = [...books, newBook];
     setBooks(nextBooks);
     saveBooks(nextBooks);
+
+    // Create Chapter 1 for this new book
+    const newChapterId = `doc-ch1-${Date.now()}`;
+    const newChapter: MarkdownDoc = {
+      id: newChapterId,
+      bookId: newBookId,
+      title: 'Chapter 1: The Beginning',
+      category: 'Chapter Draft',
+      content: `# Chapter 1: The Beginning\n\nBegin writing your novel prose...\n`,
+      linkedEntityIds: [],
+      tags: ['chapter'],
+      updatedAt: new Date().toISOString().split('T')[0],
+      wordCount: 7
+    };
+
+    const nextDocs = [newChapter, ...docs];
+    setDocs(nextDocs);
+    saveDocs(nextDocs);
+
     setSelectedBookId(newBookId);
+    setActiveDocId(newChapterId);
+    saveActiveDocId(newChapterId);
+    setOpenDocIds([newChapterId]);
+
+    handleUpdateSettings({
+      ...settings,
+      seriesTitle: title
+    });
   };
 
   const handleDeleteBook = (idToDelete: string) => {
@@ -128,7 +197,7 @@ export default function App() {
     setBooks(nextBooks);
     saveBooks(nextBooks);
     if (selectedBookId === idToDelete) {
-      setSelectedBookId('all');
+      handleSelectBook(nextBooks.length > 0 ? nextBooks[0].id : 'all');
     }
   };
 
@@ -182,17 +251,34 @@ export default function App() {
     }
   };
 
+  const handleDeleteDoc = (idToDelete: string) => {
+    if (!confirm('Are you sure you want to delete this chapter draft permanently?')) return;
+    const nextDocs = docs.filter((d) => d.id !== idToDelete);
+    const nextOpen = openDocIds.filter((id) => id !== idToDelete);
+
+    setDocs(nextDocs);
+    saveDocs(nextDocs);
+    setOpenDocIds(nextOpen);
+
+    if (activeDocId === idToDelete) {
+      const nextActiveId = nextOpen.length > 0 ? nextOpen[nextOpen.length - 1] : nextDocs[0]?.id || '';
+      setActiveDocId(nextActiveId);
+      saveActiveDocId(nextActiveId);
+    }
+  };
+
   const handleNewDoc = () => {
     const newDocId = `doc-${Date.now()}`;
     const newDocItem: MarkdownDoc = {
       id: newDocId,
+      bookId: selectedBookId === 'all' ? undefined : selectedBookId,
       title: 'New Chapter Draft',
       category: 'Chapter Draft',
-      content: `# New Chapter\n\nBegin writing chapter prose or manuscript notes...\n`,
+      content: `# New Chapter\n\nBegin writing chapter prose...\n`,
       linkedEntityIds: [],
       tags: ['chapter'],
       updatedAt: new Date().toISOString().split('T')[0],
-      wordCount: 8
+      wordCount: 6
     };
 
     const nextDocs = [newDocItem, ...docs];
@@ -202,6 +288,48 @@ export default function App() {
     setActiveDocId(newDocId);
     saveActiveDocId(newDocId);
     setOpenDocIds([...openDocIds, newDocId]);
+  };
+
+  // Open Character Notes Functionality
+  const handleOpenCharacterNote = (characterId: string) => {
+    const char = characters.find((c) => c.id === characterId);
+    if (!char) return;
+
+    if (char.markdownNoteId) {
+      const existingNote = docs.find((d) => d.id === char.markdownNoteId);
+      if (existingNote) {
+        handleSelectDoc(existingNote.id);
+        setInspectType(null);
+        setInspectId(null);
+        return;
+      }
+    }
+
+    // Create new note doc for character
+    const noteId = `doc-char-${char.id}`;
+    const newNote: MarkdownDoc = {
+      id: noteId,
+      bookId: selectedBookId === 'all' ? undefined : selectedBookId,
+      title: `${char.name} - Character Notes`,
+      category: 'Character Profile',
+      content: `# ${char.name}\n**Role**: ${char.role}\n**Title**: ${char.title}\n\n## Biography & Notes\n${char.description}\n\n## Key Story Relationships\n- Ally/Enemy notes...\n`,
+      linkedEntityIds: [{ type: 'character', id: char.id, name: char.name }],
+      tags: ['character', 'notes'],
+      updatedAt: new Date().toISOString().split('T')[0],
+      wordCount: 20
+    };
+
+    const nextDocs = [newNote, ...docs];
+    setDocs(nextDocs);
+    saveDocs(nextDocs);
+
+    // Update character with markdownNoteId
+    const updatedChar = { ...char, markdownNoteId: noteId };
+    handleUpdateCharacter(updatedChar);
+
+    handleSelectDoc(noteId);
+    setInspectType(null);
+    setInspectId(null);
   };
 
   // Entity creation handlers
@@ -286,7 +414,7 @@ export default function App() {
             onUpdateSettings={handleUpdateSettings}
             books={books}
             selectedBookId={selectedBookId}
-            onSelectBookId={setSelectedBookId}
+            onSelectBookId={handleSelectBook}
             onOpenProjectManager={() => setProjectManagerOpen(true)}
             onOpenSearch={() => setSearchOpen(true)}
             leftSidebarOpen={leftSidebarOpen}
@@ -313,9 +441,10 @@ export default function App() {
             rightSidebarOpen={rightSidebarOpen}
             onSelectDoc={handleSelectDoc}
             onCloseDocTab={handleCloseDocTab}
+            onDeleteDoc={handleDeleteDoc}
             onNewDoc={handleNewDoc}
             onUpdateDoc={handleUpdateDoc}
-            onSelectBookId={setSelectedBookId}
+            onSelectBookId={handleSelectBook}
             onOpenEntityDetail={(type, id) => {
               setInspectType(type);
               setInspectId(id);
@@ -332,7 +461,7 @@ export default function App() {
             onClose={() => setProjectManagerOpen(false)}
             books={books}
             selectedBookId={selectedBookId}
-            onSelectBook={setSelectedBookId}
+            onSelectBook={handleSelectBook}
             onCreateBook={handleCreateBook}
             onDeleteBook={handleDeleteBook}
           />
@@ -372,6 +501,7 @@ export default function App() {
             onUpdateFaction={handleUpdateFaction}
             onDeleteEntity={handleDeleteEntity}
             onSelectDoc={handleSelectDoc}
+            onOpenCharacterNote={handleOpenCharacterNote}
           />
 
           {/* Entity Creation Modal */}

@@ -43,6 +43,7 @@ interface ResponsiveShellProps {
   rightSidebarOpen: boolean;
   onSelectDoc: (id: string) => void;
   onCloseDocTab: (id: string) => void;
+  onDeleteDoc?: (id: string) => void;
   onNewDoc: () => void;
   onUpdateDoc: (doc: MarkdownDoc) => void;
   onSelectBookId: (id: string) => void;
@@ -68,6 +69,7 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
   rightSidebarOpen,
   onSelectDoc,
   onCloseDocTab,
+  onDeleteDoc,
   onNewDoc,
   onUpdateDoc,
   onSelectBookId,
@@ -137,9 +139,7 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
 
   return (
     <div className={`flex-1 flex flex-col min-h-0 relative overflow-hidden ${containerBg} select-none`}>
-      {/* ========================================================= */}
-      {/* 1. MOBILE & TABLET LAYOUT (< lg screen width)             */}
-      {/* ========================================================= */}
+      {/* MOBILE & TABLET LAYOUT */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden lg:hidden pb-14">
         {/* TAB 1: WRITER CANVAS */}
         {mobileTab === 'editor' && (
@@ -153,6 +153,7 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
               factions={factions}
               onSelectDoc={onSelectDoc}
               onCloseDocTab={onCloseDocTab}
+              onDeleteDoc={onDeleteDoc}
               onNewDoc={onNewDoc}
               onUpdateDoc={onUpdateDoc}
               onOpenEntityDetail={onOpenEntityDetail}
@@ -357,9 +358,7 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
         </nav>
       </div>
 
-      {/* ========================================================= */}
-      {/* 2. PC / DESKTOP MULTI-PANE LAYOUT (lg:flex)              */}
-      {/* ========================================================= */}
+      {/* PC DESKTOP MULTI-PANE LAYOUT */}
       <div className={`hidden lg:flex flex-1 min-h-0 relative overflow-hidden ${containerBg}`}>
         {/* LEFT MANUSCRIPT & WORLDBUILDER DRAWER */}
         {leftSidebarOpen && (
@@ -373,6 +372,8 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
               selectedBookId={selectedBookId}
               activeDocId={activeDocId}
               onSelectDoc={onSelectDoc}
+              onNewDoc={onNewDoc}
+              onDeleteDoc={onDeleteDoc}
               onOpenEntityDetail={onOpenEntityDetail}
               onCreateEntity={onCreateEntity}
               isOpen={true}
@@ -391,6 +392,7 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
             factions={factions}
             onSelectDoc={onSelectDoc}
             onCloseDocTab={onCloseDocTab}
+            onDeleteDoc={onDeleteDoc}
             onNewDoc={onNewDoc}
             onUpdateDoc={onUpdateDoc}
             onOpenEntityDetail={onOpenEntityDetail}

@@ -83,6 +83,7 @@ export interface MarkdownDoc {
   tags: string[];
   updatedAt: string;
   wordCount?: number;
+  bookId?: string;
 }
 
 export interface WorldSettings {

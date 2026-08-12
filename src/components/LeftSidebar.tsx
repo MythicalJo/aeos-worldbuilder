@@ -9,10 +9,9 @@ import {
   FileText,
   Search,
   Plus,
-  ChevronRight,
-  BookOpen,
   Layers,
-  Feather
+  Feather,
+  Trash2
 } from 'lucide-react';
 
 interface LeftSidebarProps {
@@ -24,6 +23,8 @@ interface LeftSidebarProps {
   selectedBookId: string;
   activeDocId: string;
   onSelectDoc: (id: string) => void;
+  onNewDoc: () => void;
+  onDeleteDoc?: (id: string) => void;
   onOpenEntityDetail: (type: 'character' | 'location' | 'faction', id: string) => void;
   onCreateEntity: (type: 'character' | 'location' | 'faction') => void;
   isOpen: boolean;
@@ -39,6 +40,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   selectedBookId,
   activeDocId,
   onSelectDoc,
+  onNewDoc,
+  onDeleteDoc,
   onOpenEntityDetail,
   onCreateEntity,
   isOpen,
@@ -51,12 +54,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
   if (!isOpen) return null;
 
+  // Filter docs to active project
   const filteredDocs = docs.filter((d) => {
-    return (
+    const matchesProject = !d.bookId || d.bookId === selectedBookId || selectedBookId === 'all';
+    const matchesSearch =
       d.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       d.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      d.tags.some((t) => t.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+      d.tags.some((t) => t.toLowerCase().includes(searchTerm.toLowerCase()));
+    return matchesProject && matchesSearch;
   });
 
   const filteredCharacters = characters.filter((c) => {
@@ -124,7 +129,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               else toggleMatrixView();
             }}
             className={`hidden md:flex items-center gap-1 text-[10px] ${cardBg} border px-2 py-0.5 rounded transition-all font-semibold shadow-sm`}
-            title="Open Worldbuilder Matrix Canvas (PC Only)"
+            title="Open Worldbuilder Matrix Canvas"
           >
             <Layers className={`w-3 h-3 ${accentColor}`} />
             <span>Matrix</span>
@@ -191,33 +196,102 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         </div>
       </div>
 
+      {/* Tab Header Action Bar */}
+      <div className={`px-3 py-1.5 border-b flex items-center justify-between text-xs font-bold ${sidebarBg}`}>
+        <span className="text-[10px] uppercase tracking-wider opacity-60">
+          {activeTab === 'docs'
+            ? `Chapters (${filteredDocs.length})`
+            : activeTab === 'characters'
+            ? `Characters (${filteredCharacters.length})`
+            : activeTab === 'locations'
+            ? `Places (${filteredLocations.length})`
+            : `Factions (${filteredFactions.length})`}
+        </span>
+
+        {activeTab === 'docs' && (
+          <button
+            onClick={onNewDoc}
+            className="flex items-center gap-1 text-[11px] bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-0.5 rounded transition-all shadow"
+          >
+            <Plus className="w-3 h-3" />
+            <span>Chapter</span>
+          </button>
+        )}
+        {activeTab === 'characters' && (
+          <button
+            onClick={() => onCreateEntity('character')}
+            className="flex items-center gap-1 text-[11px] bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-0.5 rounded transition-all shadow"
+          >
+            <Plus className="w-3 h-3" />
+            <span>Person</span>
+          </button>
+        )}
+        {activeTab === 'locations' && (
+          <button
+            onClick={() => onCreateEntity('location')}
+            className="flex items-center gap-1 text-[11px] bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-0.5 rounded transition-all shadow"
+          >
+            <Plus className="w-3 h-3" />
+            <span>Place</span>
+          </button>
+        )}
+        {activeTab === 'factions' && (
+          <button
+            onClick={() => onCreateEntity('faction')}
+            className="flex items-center gap-1 text-[11px] bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-0.5 rounded transition-all shadow"
+          >
+            <Plus className="w-3 h-3" />
+            <span>Faction</span>
+          </button>
+        )}
+      </div>
+
       {/* Tab Content List */}
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
         {/* MANUSCRIPT CHAPTERS */}
         {activeTab === 'docs' && (
           <>
-            {filteredDocs.map((d) => (
-              <div
-                key={d.id}
-                onClick={() => onSelectDoc(d.id)}
-                className={`p-2.5 rounded-lg border transition-all cursor-pointer flex items-start gap-2.5 ${
-                  activeDocId === d.id
-                    ? `${activeCardBg} border-l-4 border-l-indigo-500`
-                    : `${cardBg} opacity-80 hover:opacity-100`
-                }`}
-              >
-                <FileText className={`w-4 h-4 shrink-0 mt-0.5 ${activeDocId === d.id ? accentColor : 'opacity-60'}`} />
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-xs truncate">{d.title}</h4>
-                  <div className="flex items-center justify-between mt-1 text-[10px] opacity-70">
-                    <span className={`${cardBg} px-1.5 py-0.2 rounded border truncate max-w-[90px]`}>
-                      {d.category}
-                    </span>
-                    <span>{d.wordCount || 0} words</span>
+            {filteredDocs.length === 0 ? (
+              <div className="p-4 text-center text-xs opacity-60">No chapters found. Click + Chapter to start writing!</div>
+            ) : (
+              filteredDocs.map((d) => (
+                <div
+                  key={d.id}
+                  onClick={() => onSelectDoc(d.id)}
+                  className={`group p-2.5 rounded-lg border transition-all cursor-pointer flex items-start justify-between gap-2 ${
+                    activeDocId === d.id
+                      ? `${activeCardBg} border-l-4 border-l-indigo-500`
+                      : `${cardBg} opacity-80 hover:opacity-100`
+                  }`}
+                >
+                  <div className="flex items-start gap-2 min-w-0 flex-1">
+                    <FileText className={`w-4 h-4 shrink-0 mt-0.5 ${activeDocId === d.id ? accentColor : 'opacity-60'}`} />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-xs truncate">{d.title}</h4>
+                      <div className="flex items-center justify-between mt-1 text-[10px] opacity-70">
+                        <span className={`${cardBg} border px-1.5 py-0.2 rounded truncate max-w-[90px]`}>
+                          {d.category}
+                        </span>
+                        <span>{d.wordCount || 0} words</span>
+                      </div>
+                    </div>
                   </div>
+
+                  {onDeleteDoc && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteDoc(d.id);
+                      }}
+                      className="p-1 rounded opacity-0 group-hover:opacity-100 hover:text-rose-500 transition-opacity"
+                      title="Delete Chapter"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </>
         )}
 

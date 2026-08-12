@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Character, Location, Faction, TimelineEvent, Book } from '../types';
-import { X, Plus, Sparkles } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import { useOutsideClick } from '../hooks/useOutsideClick';
+import { X, Plus, Upload, Image as ImageIcon } from 'lucide-react';
 
 interface CreateEntityModalProps {
   mode: 'character' | 'location' | 'faction' | 'event' | null;
@@ -29,7 +31,10 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
   onCreateFaction,
   onCreateTimelineEvent
 }) => {
-  // Form fields
+  const { theme } = useTheme();
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Common fields
   const [name, setName] = useState('');
   const [title, setTitle] = useState('');
   const [role, setRole] = useState<Character['role']>('Supporting');
@@ -38,10 +43,11 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
   const [magicAffinity, setMagicAffinity] = useState('');
   const [quote, setQuote] = useState('');
   const [traitsInput, setTraitsInput] = useState('Brave, Cautious');
+  const [imageUrl, setImageUrl] = useState('');
 
   // Location specific
   const [locType, setLocType] = useState<Location['type']>('City');
-  const [region, setRegion] = useState('Central Plains');
+  const [region, setRegion] = useState('Central Realm');
   const [dangerLevel, setDangerLevel] = useState<Location['dangerLevel']>('Moderate');
 
   // Faction specific
@@ -57,7 +63,20 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
   const [importance, setImportance] = useState<TimelineEvent['importance']>('Major');
   const [bookId, setBookId] = useState(books[0]?.id || 'book-1');
 
+  useOutsideClick(modalRef, onClose, isOpen);
+
   if (!isOpen || !mode) return null;
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setImageUrl(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,8 +93,8 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
         role,
         status,
         bookIds: [bookId],
-        description: description || 'New character in the series.',
-        avatarUrl: `https://picsum.photos/seed/${newId}/200`,
+        description: description || 'New character in the story.',
+        avatarUrl: imageUrl || undefined,
         traits: traits.length > 0 ? traits : ['Mysterious'],
         magicAffinity,
         quote
@@ -87,8 +106,8 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
         type: locType,
         region: region || 'Unknown Region',
         bookIds: [bookId],
-        description: description || 'A legendary location.',
-        imageUrl: `https://picsum.photos/seed/${newId}/600/400`,
+        description: description || 'A key location in the realm.',
+        imageUrl: imageUrl || undefined,
         landmarks: ['Central Plaza'],
         dangerLevel
       });
@@ -98,7 +117,7 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
         name,
         emblem: emblem || '⚔️',
         allegiance,
-        description: description || 'A prominent organization.',
+        description: description || 'A prominent faction.',
         motto: motto || 'By honor we lead.',
         influenceLevel: 'Regional'
       });
@@ -113,7 +132,7 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
         eventType,
         characterIds: [],
         locationIds: [],
-        summary: description || 'A significant historical event.',
+        summary: description || 'A key event in the timeline.',
         importance
       });
     }
@@ -121,27 +140,53 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
     onClose();
   };
 
+  const isSepia = theme === 'sepia';
+  const isLight = theme === 'light';
+
+  const modalBg = isSepia
+    ? 'bg-[#fbf0d9] text-[#433422] border-[#dcc090]'
+    : isLight
+    ? 'bg-[#ffffff] text-[#0f172a] border-[#e2e8f0]'
+    : 'bg-[#09090b] text-[#e4e4e7] border-[#27272a]';
+
+  const headerBg = isSepia
+    ? 'bg-[#f4e4bc] border-[#dcc090]'
+    : isLight
+    ? 'bg-[#f1f5f9] border-[#cbd5e1]'
+    : 'bg-[#0c0c0e] border-[#27272a]';
+
+  const cardBg = isSepia
+    ? 'bg-[#ebd4a2] border-[#dcc090]'
+    : isLight
+    ? 'bg-[#f8fafc] border-[#cbd5e1]'
+    : 'bg-[#18181b] border-[#27272a]';
+
+  const accentColor = isSepia ? 'text-[#964b00]' : isLight ? 'text-indigo-600' : 'text-indigo-400';
+
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#09090b] border border-[#27272a] rounded shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] text-[#e4e4e7]">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 select-none animate-in fade-in duration-150">
+      <div
+        ref={modalRef}
+        className={`w-full max-w-lg ${modalBg} border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]`}
+      >
         {/* Header */}
-        <div className="p-3 border-b border-[#27272a] flex items-center justify-between bg-[#09090b]">
-          <div className="flex items-center gap-2 font-semibold text-white capitalize text-xs md:text-sm">
-            <Plus className="w-4 h-4 text-indigo-400" />
+        <div className={`p-3.5 border-b ${headerBg} flex items-center justify-between`}>
+          <div className="flex items-center gap-2 font-bold text-sm capitalize">
+            <Plus className={`w-4 h-4 ${accentColor}`} />
             <span>Create New {mode}</span>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded text-[#71717a] hover:text-white hover:bg-[#18181b]"
+            className="p-1 rounded opacity-70 hover:opacity-100 hover:bg-black/10"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-3 overflow-y-auto space-y-3 text-xs">
+        <form onSubmit={handleSubmit} className="p-4 overflow-y-auto space-y-3.5 text-xs flex-1">
           <div>
-            <label className="font-medium text-[#a1a1aa] mb-1 block text-[11px]">
+            <label className="font-bold block mb-1">
               {mode === 'event' ? 'Event Title' : `${mode.charAt(0).toUpperCase() + mode.slice(1)} Name`} *
             </label>
             <input
@@ -150,30 +195,62 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
               placeholder={`Enter ${mode} name...`}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-[#09090b] border border-[#27272a] p-2 rounded text-[#e4e4e7] focus:outline-none focus:border-indigo-500"
+              className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none focus:border-indigo-500 font-bold`}
             />
           </div>
+
+          {/* IMAGE UPLOAD SECTION FOR CHARACTER AND LOCATION */}
+          {(mode === 'character' || mode === 'location') && (
+            <div className={`p-3 ${cardBg} border rounded-xl space-y-2`}>
+              <label className="text-[10px] font-bold uppercase opacity-70 flex items-center gap-1">
+                <ImageIcon className="w-3.5 h-3.5 text-indigo-500" />
+                Image Settings
+              </label>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg cursor-pointer transition-colors text-xs shadow">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload Local File</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </label>
+                {imageUrl && (
+                  <span className="text-[10px] font-bold text-emerald-500">Image Loaded!</span>
+                )}
+              </div>
+              <input
+                type="text"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="Or enter Image URL"
+                className={`w-full ${cardBg} border p-1.5 rounded-lg text-xs focus:outline-none focus:border-indigo-500 mt-1`}
+              />
+            </div>
+          )}
 
           {/* CHARACTER FIELDS */}
           {mode === 'character' && (
             <>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="font-semibold text-[#71717a] text-[10px] uppercase">Title / Role</label>
+                  <label className="font-bold block mb-1">Title / Honorific</label>
                   <input
                     type="text"
-                    placeholder="e.g. Master Archivist"
+                    placeholder="e.g. Master Scholar"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full bg-[#09090b] border border-[#27272a] p-1.5 rounded text-xs mt-1 text-[#e4e4e7]"
+                    className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none focus:border-indigo-500`}
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-[#71717a] text-[10px] uppercase">Narrative Role</label>
+                  <label className="font-bold block mb-1">Narrative Role</label>
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value as Character['role'])}
-                    className="w-full bg-[#09090b] border border-[#27272a] p-1.5 rounded text-xs mt-1 text-[#e4e4e7]"
+                    className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none`}
                   >
                     <option value="Protagonist">Protagonist</option>
                     <option value="Antagonist">Antagonist</option>
@@ -184,24 +261,13 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
               </div>
 
               <div>
-                <label className="font-semibold text-[#71717a] text-[10px] uppercase">Magic Affinity</label>
+                <label className="font-bold block mb-1">Magic Affinity</label>
                 <input
                   type="text"
-                  placeholder="e.g. Time Weaving & Aether Scribing"
+                  placeholder="e.g. Glyph Weaving"
                   value={magicAffinity}
                   onChange={(e) => setMagicAffinity(e.target.value)}
-                  className="w-full bg-[#09090b] border border-[#27272a] p-1.5 rounded text-xs mt-1 text-[#e4e4e7]"
-                />
-              </div>
-
-              <div>
-                <label className="font-semibold text-[#71717a] text-[10px] uppercase">Traits (Comma Separated)</label>
-                <input
-                  type="text"
-                  placeholder="Intellectual, Cautious, Loyal"
-                  value={traitsInput}
-                  onChange={(e) => setTraitsInput(e.target.value)}
-                  className="w-full bg-[#09090b] border border-[#27272a] p-1.5 rounded text-xs mt-1 text-[#e4e4e7]"
+                  className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none focus:border-indigo-500`}
                 />
               </div>
             </>
@@ -211,27 +277,24 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
           {mode === 'location' && (
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="font-semibold text-[#71717a] text-[10px] uppercase">Region</label>
+                <label className="font-bold block mb-1">Region</label>
                 <input
                   type="text"
-                  placeholder="e.g. Northern Frostlands"
+                  placeholder="e.g. High Peaks"
                   value={region}
                   onChange={(e) => setRegion(e.target.value)}
-                  className="w-full bg-[#09090b] border border-[#27272a] p-1.5 rounded text-xs mt-1 text-[#e4e4e7]"
+                  className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none focus:border-indigo-500`}
                 />
               </div>
               <div>
-                <label className="font-semibold text-[#71717a] text-[10px] uppercase">Danger Level</label>
-                <select
-                  value={dangerLevel}
-                  onChange={(e) => setDangerLevel(e.target.value as Location['dangerLevel'])}
-                  className="w-full bg-[#09090b] border border-[#27272a] p-1.5 rounded text-xs mt-1 text-[#e4e4e7]"
-                >
-                  <option value="Safe">Safe</option>
-                  <option value="Moderate">Moderate</option>
-                  <option value="Perilous">Perilous</option>
-                  <option value="Forbidden">Forbidden</option>
-                </select>
+                <label className="font-bold block mb-1">Type</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Citadel, City, Ruins"
+                  value={locType}
+                  onChange={(e) => setLocType(e.target.value)}
+                  className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none focus:border-indigo-500`}
+                />
               </div>
             </div>
           )}
@@ -240,90 +303,36 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
           {mode === 'faction' && (
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="font-semibold text-[#71717a] text-[10px] uppercase">Motto</label>
+                <label className="font-bold block mb-1">Motto</label>
                 <input
                   type="text"
                   placeholder="e.g. By Light We Prevail"
                   value={motto}
                   onChange={(e) => setMotto(e.target.value)}
-                  className="w-full bg-[#09090b] border border-[#27272a] p-1.5 rounded text-xs mt-1 text-[#e4e4e7]"
+                  className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none focus:border-indigo-500`}
                 />
               </div>
               <div>
-                <label className="font-semibold text-[#71717a] text-[10px] uppercase">Emblem Icon</label>
+                <label className="font-bold block mb-1">Emblem Icon</label>
                 <input
                   type="text"
                   placeholder="⚔️"
                   value={emblem}
                   onChange={(e) => setEmblem(e.target.value)}
-                  className="w-full bg-[#09090b] border border-[#27272a] p-1.5 rounded text-xs mt-1 text-[#e4e4e7]"
+                  className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none focus:border-indigo-500`}
                 />
               </div>
             </div>
           )}
 
-          {/* TIMELINE EVENT FIELDS */}
-          {mode === 'event' && (
-            <>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="font-semibold text-[#71717a] text-[10px] uppercase">Numerical Year</label>
-                  <input
-                    type="number"
-                    value={year}
-                    onChange={(e) => setYear(Number(e.target.value))}
-                    className="w-full bg-[#09090b] border border-[#27272a] p-1.5 rounded text-xs mt-1 text-[#e4e4e7]"
-                  />
-                </div>
-                <div>
-                  <label className="font-semibold text-[#71717a] text-[10px] uppercase">Year Label</label>
-                  <input
-                    type="text"
-                    value={yearLabel}
-                    onChange={(e) => setYearLabel(e.target.value)}
-                    className="w-full bg-[#09090b] border border-[#27272a] p-1.5 rounded text-xs mt-1 text-[#e4e4e7]"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="font-semibold text-[#71717a] text-[10px] uppercase">Era</label>
-                  <select
-                    value={era}
-                    onChange={(e) => setEra(e.target.value as TimelineEvent['era'])}
-                    className="w-full bg-[#09090b] border border-[#27272a] p-1.5 rounded text-xs mt-1 text-[#e4e4e7]"
-                  >
-                    <option value="Age of Dawn">Age of Dawn</option>
-                    <option value="The Shattered Crown">The Shattered Crown</option>
-                    <option value="Age of Ashes">Age of Ashes</option>
-                    <option value="The Convergence">The Convergence</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="font-semibold text-[#71717a] text-[10px] uppercase">Importance</label>
-                  <select
-                    value={importance}
-                    onChange={(e) => setImportance(e.target.value as TimelineEvent['importance'])}
-                    className="w-full bg-[#09090b] border border-[#27272a] p-1.5 rounded text-xs mt-1 text-[#e4e4e7]"
-                  >
-                    <option value="World-Changing">World-Changing</option>
-                    <option value="Major">Major</option>
-                    <option value="Minor">Minor</option>
-                  </select>
-                </div>
-              </div>
-            </>
-          )}
-
           <div>
-            <label className="font-semibold text-[#71717a] text-[10px] uppercase">Description / Lore Summary</label>
+            <label className="font-bold block mb-1">Description / Backstory</label>
             <textarea
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-[#09090b] border border-[#27272a] p-2 rounded text-[#e4e4e7] focus:outline-none focus:border-indigo-500 mt-1"
-              placeholder={`Write backstory or summary for this ${mode}...`}
+              className={`w-full ${cardBg} border p-2 rounded-lg leading-relaxed focus:outline-none focus:border-indigo-500`}
+              placeholder={`Write description for this ${mode}...`}
             />
           </div>
 
@@ -331,15 +340,15 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1 bg-[#18181b] hover:bg-[#27272a] text-[#e4e4e7] rounded text-xs font-medium border border-[#27272a]"
+              className="px-3 py-1.5 opacity-70 hover:opacity-100 text-xs font-bold"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded text-xs"
+              className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs shadow"
             >
-              Save {mode}
+              Create {mode}
             </button>
           </div>
         </form>
