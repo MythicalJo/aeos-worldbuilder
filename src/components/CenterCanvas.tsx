@@ -29,6 +29,12 @@ import {
   Trash2
 } from 'lucide-react';
 
+interface HistoryEntry {
+  content: string;
+  selectionStart: number;
+  selectionEnd: number;
+}
+
 interface CenterCanvasProps {
   docs: MarkdownDoc[];
   activeDocId: string;
@@ -58,7 +64,8 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
   onUpdateDoc,
   onOpenEntityDetail
 }) => {
-  const { theme } = useTheme();
+  const { theme, getAccentClasses } = useTheme();
+  const accentClasses = getAccentClasses();
   const activeDoc = docs.find((d) => d.id === activeDocId) || docs[0];
 
   const [viewMode, setViewMode] = useState<'edit' | 'split' | 'preview'>('edit');
@@ -75,8 +82,8 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
   const [fontSize, setFontSize] = useState<number>(18);
   const [isFocusMode, setIsFocusMode] = useState<boolean>(false);
 
-  // Undo / Redo History Stack
-  const historyRef = useRef<string[]>([activeDoc?.content || '']);
+  // Robust Undo / Redo History Stack with Caret Selection Tracking
+  const historyRef = useRef<HistoryEntry[]>([{ content: activeDoc?.content || '', selectionStart: 0, selectionEnd: 0 }]);
   const historyIndexRef = useRef<number>(0);
   const [canUndo, setCanUndo] = useState<boolean>(false);
   const [canRedo, setCanRedo] = useState<boolean>(false);
@@ -91,21 +98,42 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
     setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
   };
 
-  const pushHistory = useCallback((newContent: string) => {
-    if (historyRef.current[historyIndexRef.current] === newContent) return;
+  const pushHistory = useCallback((newContent: string, selStart?: number, selEnd?: number) => {
+    const currentSelStart = selStart ?? textareaRef.current?.selectionStart ?? newContent.length;
+    const currentSelEnd = selEnd ?? textareaRef.current?.selectionEnd ?? newContent.length;
+
+    const currentEntry = historyRef.current[historyIndexRef.current];
+    if (currentEntry && currentEntry.content === newContent) return;
+
     const nextHistory = historyRef.current.slice(0, historyIndexRef.current + 1);
-    nextHistory.push(newContent);
-    if (nextHistory.length > 50) nextHistory.shift();
+    nextHistory.push({
+      content: newContent,
+      selectionStart: currentSelStart,
+      selectionEnd: currentSelEnd
+    });
+    if (nextHistory.length > 80) nextHistory.shift();
     historyRef.current = nextHistory;
     historyIndexRef.current = nextHistory.length - 1;
     updateUndoRedoState();
   }, []);
 
+  const restoreCaretPosition = (entry: HistoryEntry) => {
+    requestAnimationFrame(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        const start = Math.min(entry.selectionStart, entry.content.length);
+        const end = Math.min(entry.selectionEnd, entry.content.length);
+        textareaRef.current.setSelectionRange(start, end);
+      }
+    });
+  };
+
   const handleUndo = useCallback(() => {
     if (historyIndexRef.current > 0) {
       historyIndexRef.current -= 1;
-      const prevContent = historyRef.current[historyIndexRef.current];
-      setContent(prevContent);
+      const prevEntry = historyRef.current[historyIndexRef.current];
+      setContent(prevEntry.content);
+      restoreCaretPosition(prevEntry);
       updateUndoRedoState();
     }
   }, []);
@@ -113,8 +141,9 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
   const handleRedo = useCallback(() => {
     if (historyIndexRef.current < historyRef.current.length - 1) {
       historyIndexRef.current += 1;
-      const nextContent = historyRef.current[historyIndexRef.current];
-      setContent(nextContent);
+      const nextEntry = historyRef.current[historyIndexRef.current];
+      setContent(nextEntry.content);
+      restoreCaretPosition(nextEntry);
       updateUndoRedoState();
     }
   }, []);
@@ -126,7 +155,7 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
       setTitle(activeDoc.title);
       setCategory(activeDoc.category);
       setTags(activeDoc.tags);
-      historyRef.current = [activeDoc.content];
+      historyRef.current = [{ content: activeDoc.content, selectionStart: 0, selectionEnd: 0 }];
       historyIndexRef.current = 0;
       updateUndoRedoState();
     }
@@ -164,7 +193,7 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
       });
       setIsSaving(false);
       pushHistory(content);
-    }, 600);
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [content, title, category, tags]);
@@ -182,8 +211,10 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
       suffix +
       content.substring(end);
 
+    const newCaretPos = start + prefix.length + (selectedText ? selectedText.length : 4);
     setContent(newText);
-    pushHistory(newText);
+    pushHistory(newText, newCaretPos, newCaretPos);
+
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(
@@ -298,20 +329,18 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
     ? 'bg-[#ffffff] border-[#cbd5e1] text-[#0f172a]'
     : 'bg-[#18181b] border-[#27272a] text-[#e4e4e7]';
 
-  const accentColor = isSepia ? 'text-[#964b00]' : isLight ? 'text-indigo-600' : 'text-indigo-400';
-
   if (!activeDoc) {
     return (
       <main className={`flex-1 ${containerBg} flex items-center justify-center p-6 select-none`}>
         <div className="text-center space-y-3">
           <FileText className="w-12 h-12 opacity-40 mx-auto" />
-          <h3 className="text-base font-semibold">No Chapter / Document Selected</h3>
+          <h3 className="text-base font-semibold">No Chapter Selected</h3>
           <p className="text-xs opacity-70">
-            Select a manuscript chapter or reference note from the sidebar.
+            Select a manuscript chapter from the sidebar.
           </p>
           <button
             onClick={onNewDoc}
-            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs rounded transition-colors shadow"
+            className={`px-3.5 py-1.5 ${accentClasses.bg} text-white font-bold text-xs rounded-xl shadow`}
           >
             Create New Chapter
           </button>
@@ -334,13 +363,13 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
               <div
                 key={id}
                 onClick={() => onSelectDoc(id)}
-                className={`group flex items-center gap-2 px-3 py-1.5 rounded-t border-t border-x text-xs cursor-pointer transition-all shrink-0 select-none ${
+                className={`group flex items-center gap-2 px-3 py-1.5 rounded-t-xl border-t border-x text-xs cursor-pointer transition-all shrink-0 select-none ${
                   isActive
-                    ? `${containerBg} border-current/20 ${accentColor} font-bold shadow-sm`
+                    ? `${containerBg} border-current/20 ${accentClasses.text} font-bold shadow-sm`
                     : 'opacity-70 hover:opacity-100 hover:bg-black/10'
                 }`}
               >
-                <FileText className={`w-3.5 h-3.5 shrink-0 ${accentColor}`} />
+                <FileText className={`w-3.5 h-3.5 shrink-0 ${accentClasses.text}`} />
                 <span className="truncate max-w-[120px] sm:max-w-[180px]">{docItem.title}</span>
                 {openDocIds.length > 1 && (
                   <button
@@ -384,7 +413,7 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value as MarkdownDoc['category'])}
-              className={`${cardBg} text-xs rounded px-2 py-1 focus:outline-none cursor-pointer border`}
+              className={`${cardBg} text-xs rounded-lg px-2.5 py-1 focus:outline-none cursor-pointer border font-bold`}
             >
               <option value="Chapter Draft">Chapter Draft</option>
               <option value="Lore">Lore & World</option>
@@ -397,12 +426,12 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
 
           {/* View Mode & Delete Chapter Controls */}
           <div className="flex items-center gap-2">
-            <div className={`flex items-center gap-1 ${cardBg} p-0.5 rounded border text-xs`}>
+            <div className={`flex items-center gap-1 ${cardBg} p-0.5 rounded-lg border text-xs`}>
               <button
                 onClick={() => setViewMode('edit')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded transition-colors ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors ${
                   viewMode === 'edit'
-                    ? `${containerBg} ${accentColor} font-bold shadow-sm`
+                    ? `${containerBg} ${accentClasses.text} font-bold shadow-sm`
                     : 'opacity-70 hover:opacity-100'
                 }`}
                 title="Editor Write Mode"
@@ -413,9 +442,9 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
 
               <button
                 onClick={() => setViewMode('split')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded transition-colors ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors ${
                   viewMode === 'split'
-                    ? `${containerBg} ${accentColor} font-bold shadow-sm`
+                    ? `${containerBg} ${accentClasses.text} font-bold shadow-sm`
                     : 'opacity-70 hover:opacity-100'
                 }`}
                 title="Split Write & Preview"
@@ -426,9 +455,9 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
 
               <button
                 onClick={() => setViewMode('preview')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded transition-colors ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-colors ${
                   viewMode === 'preview'
-                    ? `${containerBg} ${accentColor} font-bold shadow-sm`
+                    ? `${containerBg} ${accentClasses.text} font-bold shadow-sm`
                     : 'opacity-70 hover:opacity-100'
                 }`}
                 title="Reading Preview Mode"
@@ -441,7 +470,7 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
             {onDeleteDoc && (
               <button
                 onClick={() => onDeleteDoc(activeDocId)}
-                className={`p-1.5 rounded border ${cardBg} opacity-70 hover:opacity-100 hover:text-rose-500 transition-colors`}
+                className={`p-1.5 rounded-lg border ${cardBg} opacity-70 hover:opacity-100 hover:text-rose-500 transition-colors`}
                 title="Delete Chapter Draft"
               >
                 <Trash2 className="w-4 h-4 text-rose-500" />
@@ -480,8 +509,8 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
             <div className="w-px h-4 opacity-30 bg-current mx-1" />
 
             {/* Font Family Selector */}
-            <div className={`flex items-center gap-1 ${cardBg} border rounded px-2 py-0.5 text-xs`}>
-              <Type className={`w-3.5 h-3.5 ${accentColor} shrink-0`} />
+            <div className={`flex items-center gap-1 ${cardBg} border rounded-lg px-2 py-0.5 text-xs`}>
+              <Type className={`w-3.5 h-3.5 ${accentClasses.text} shrink-0`} />
               <select
                 value={fontFamily}
                 onChange={(e) => setFontFamily(e.target.value as any)}
@@ -494,7 +523,7 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
             </div>
 
             {/* Font Size Selector */}
-            <div className={`flex items-center gap-1 ${cardBg} border rounded px-2 py-0.5 text-xs`}>
+            <div className={`flex items-center gap-1 ${cardBg} border rounded-lg px-2 py-0.5 text-xs`}>
               <span className="opacity-70 text-[11px] font-bold">Size:</span>
               <select
                 value={fontSize}
@@ -562,7 +591,7 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
             <div className="relative" ref={linkDropdownRef}>
               <button
                 onClick={() => setShowLinkDropdown(!showLinkDropdown)}
-                className={`flex items-center gap-1 px-2.5 py-0.5 ${cardBg} border ${accentColor} font-semibold rounded text-xs transition-colors`}
+                className={`flex items-center gap-1 px-2.5 py-0.5 ${cardBg} border ${accentClasses.text} font-semibold rounded-lg text-xs transition-colors`}
                 title="Insert Reference Link to Character or Place"
               >
                 <LinkIcon className="w-3 h-3" />
@@ -570,13 +599,13 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
               </button>
 
               {showLinkDropdown && (
-                <div className={`absolute left-0 mt-1 w-64 ${headerBg} border rounded shadow-2xl p-2 z-50 text-xs space-y-2 max-h-72 overflow-y-auto`}>
+                <div className={`absolute left-0 mt-1 w-64 ${headerBg} border rounded-xl shadow-2xl p-2 z-50 text-xs space-y-2 max-h-72 overflow-y-auto`}>
                   <div className="text-[10px] uppercase font-bold opacity-60 border-b pb-1">
                     Insert Reference Link
                   </div>
 
                   <div>
-                    <div className={`font-bold ${accentColor} text-[10px] mb-1`}>People / Characters</div>
+                    <div className={`font-bold ${accentClasses.text} text-[10px] mb-1`}>People / Characters</div>
                     {characters.map((c) => (
                       <button
                         key={c.id}
@@ -630,13 +659,13 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
       {/* Focus Mode Exit Bar */}
       {isFocusMode && (
         <div className={`${headerBg} border-b px-4 py-1.5 flex items-center justify-between text-xs shrink-0`}>
-          <span className={`${accentColor} font-bold flex items-center gap-1.5`}>
+          <span className={`${accentClasses.text} font-bold flex items-center gap-1.5`}>
             <Maximize2 className="w-3.5 h-3.5" />
             <span>Focus Mode Active — Writing {title}</span>
           </span>
           <button
             onClick={() => setIsFocusMode(false)}
-            className={`flex items-center gap-1 px-2.5 py-0.5 ${cardBg} border rounded transition-colors font-medium`}
+            className={`flex items-center gap-1 px-2.5 py-0.5 ${cardBg} border rounded-lg transition-colors font-medium`}
           >
             <Minimize2 className="w-3.5 h-3.5" />
             <span>Exit Focus</span>
@@ -691,7 +720,7 @@ export const CenterCanvas: React.FC<CenterCanvasProps> = ({
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
               <CheckCircle2
-                className={`w-3 h-3 ${isSaving ? `${accentColor} animate-spin` : 'text-emerald-500'}`}
+                className={`w-3 h-3 ${isSaving ? `${accentClasses.text} animate-spin` : 'text-emerald-500'}`}
               />
               <span>{isSaving ? 'Saving...' : 'Saved locally'}</span>
             </span>

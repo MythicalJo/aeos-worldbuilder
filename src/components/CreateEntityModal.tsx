@@ -37,7 +37,7 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
   // Common fields
   const [name, setName] = useState('');
   const [title, setTitle] = useState('');
-  const [role, setRole] = useState<Character['role']>('Supporting');
+  const [role, setRole] = useState('Protagonist');
   const [status, setStatus] = useState<Character['status']>('Alive');
   const [description, setDescription] = useState('');
   const [magicAffinity, setMagicAffinity] = useState('');
@@ -88,12 +88,12 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
       const traits = traitsInput.split(',').map((t) => t.trim()).filter(Boolean);
       onCreateCharacter({
         id: newId,
-        name,
-        title: title || 'Adventurer',
-        role,
+        name: name.trim(),
+        title: title.trim() || 'Adventurer',
+        role: role.trim() || 'Protagonist',
         status,
         bookIds: [bookId],
-        description: description || 'New character in the story.',
+        description: description.trim() || 'New character in the story.',
         avatarUrl: imageUrl || undefined,
         traits: traits.length > 0 ? traits : ['Mysterious'],
         magicAffinity,
@@ -102,11 +102,11 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
     } else if (mode === 'location') {
       onCreateLocation({
         id: newId,
-        name,
+        name: name.trim(),
         type: locType,
-        region: region || 'Unknown Region',
+        region: region.trim() || 'Unknown Region',
         bookIds: [bookId],
-        description: description || 'A key location in the realm.',
+        description: description.trim() || 'A key location in the realm.',
         imageUrl: imageUrl || undefined,
         landmarks: ['Central Plaza'],
         dangerLevel
@@ -114,17 +114,17 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
     } else if (mode === 'faction') {
       onCreateFaction({
         id: newId,
-        name,
+        name: name.trim(),
         emblem: emblem || '⚔️',
         allegiance,
-        description: description || 'A prominent faction.',
-        motto: motto || 'By honor we lead.',
+        description: description.trim() || 'A prominent faction.',
+        motto: motto.trim() || 'By honor we lead.',
         influenceLevel: 'Regional'
       });
     } else if (mode === 'event') {
       onCreateTimelineEvent({
         id: newId,
-        title: name,
+        title: name.trim(),
         year,
         yearLabel: yearLabel || `Year ${year} TA`,
         era,
@@ -132,11 +132,16 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
         eventType,
         characterIds: [],
         locationIds: [],
-        summary: description || 'A key event in the timeline.',
+        summary: description.trim() || 'A key event in the timeline.',
         importance
       });
     }
 
+    // Reset form fields
+    setName('');
+    setTitle('');
+    setDescription('');
+    setImageUrl('');
     onClose();
   };
 
@@ -247,16 +252,13 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({
                 </div>
                 <div>
                   <label className="font-bold block mb-1">Narrative Role</label>
-                  <select
+                  <input
+                    type="text"
+                    placeholder="e.g. Protagonist, Rival, Mentor..."
                     value={role}
-                    onChange={(e) => setRole(e.target.value as Character['role'])}
-                    className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none`}
-                  >
-                    <option value="Protagonist">Protagonist</option>
-                    <option value="Antagonist">Antagonist</option>
-                    <option value="Supporting">Supporting</option>
-                    <option value="Historical Legend">Historical Legend</option>
-                  </select>
+                    onChange={(e) => setRole(e.target.value)}
+                    className={`w-full ${cardBg} border p-2 rounded-lg focus:outline-none focus:border-indigo-500`}
+                  />
                 </div>
               </div>
 

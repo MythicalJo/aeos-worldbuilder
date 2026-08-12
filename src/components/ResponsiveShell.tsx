@@ -307,7 +307,7 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
               onSelectBookId={onSelectBookId}
               onSelectDoc={onSelectDoc}
               onOpenEntityDetail={onOpenEntityDetail}
-              onCreateEvent={() => onCreateEntity('character')}
+              onCreateEvent={() => onCreateEntity('event')}
               onUpdateEvent={onUpdateTimelineEvent}
               onDeleteEvent={onDeleteTimelineEvent}
               isOpen={true}
@@ -424,7 +424,7 @@ export const ResponsiveShell: React.FC<ResponsiveShellProps> = ({
               onSelectBookId={onSelectBookId}
               onSelectDoc={onSelectDoc}
               onOpenEntityDetail={onOpenEntityDetail}
-              onCreateEvent={() => onCreateEntity('character')}
+              onCreateEvent={() => onCreateEntity('event')}
               onUpdateEvent={onUpdateTimelineEvent}
               onDeleteEvent={onDeleteTimelineEvent}
               isOpen={true}

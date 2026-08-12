@@ -110,8 +110,57 @@ export default function App() {
   // Create Entity Modal state
   const [createMode, setCreateMode] = useState<'character' | 'location' | 'faction' | 'event' | null>(null);
 
-  // Confirmation Modal State for Chapter Deletion
+  // Confirmation Modal State for Chapter & Category Deletion
   const [confirmDeleteDocId, setConfirmDeleteDocId] = useState<string | null>(null);
+  const [confirmCategoryDeleteId, setConfirmCategoryDeleteId] = useState<string | null>(null);
+
+  // Centralized Global Keyboard Shortcuts (Ctrl/Cmd+K & Escape)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + K shortcut for Quick Search
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+        return;
+      }
+
+      // Escape shortcut for dismissing top-most transient UI
+      if (e.key === 'Escape') {
+        if (searchOpen) {
+          setSearchOpen(false);
+          return;
+        }
+        if (createMode) {
+          setCreateMode(null);
+          return;
+        }
+        if (createCategoryOpen) {
+          setCreateCategoryOpen(false);
+          return;
+        }
+        if (inspectType) {
+          setInspectType(null);
+          setInspectId(null);
+          return;
+        }
+        if (projectManagerOpen) {
+          setProjectManagerOpen(false);
+          return;
+        }
+        if (confirmDeleteDocId) {
+          setConfirmDeleteDocId(null);
+          return;
+        }
+        if (confirmCategoryDeleteId) {
+          setConfirmCategoryDeleteId(null);
+          return;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [searchOpen, createMode, createCategoryOpen, inspectType, projectManagerOpen, confirmDeleteDocId, confirmCategoryDeleteId]);
 
   // Active Project object
   const activeProject = projects.find((p) => p.id === activeProjectId) || projects[0] || null;
@@ -148,13 +197,17 @@ export default function App() {
     return books.filter((b) => !b.projectId || b.projectId === activeProjectId);
   }, [books, activeProjectId]);
 
+  const scopedTimeline = React.useMemo(() => {
+    return timeline.filter((t) => !t.projectId || sharedProjectIds.includes(t.projectId));
+  }, [timeline, sharedProjectIds]);
+
   // Settings update handler
   const handleUpdateSettings = (newSettings: WorldSettings) => {
     setSettings(newSettings);
     saveSettings(newSettings);
   };
 
-  // Project Selection Flow
+  // Authoritative Project Selection Flow
   const handleSelectProject = (projectId: string) => {
     setActiveProjectId(projectId);
     handleUpdateSettings({
@@ -164,7 +217,18 @@ export default function App() {
 
     const projectBooks = books.filter((b) => b.projectId === projectId);
     if (projectBooks.length > 0) {
-      setSelectedBookId(projectBooks[0].id);
+      const primaryBook = projectBooks[0];
+      setSelectedBookId(primaryBook.id);
+      
+      // Update open tabs and active doc to primary book's chapters
+      const bookDocs = docs.filter((d) => d.bookId === primaryBook.id);
+      if (bookDocs.length > 0) {
+        setActiveDocId(bookDocs[0].id);
+        saveActiveDocId(bookDocs[0].id);
+        setOpenDocIds([bookDocs[0].id]);
+      } else {
+        handleCreateBookChapter(projectId, primaryBook.id, primaryBook.title);
+      }
     } else {
       // Create default book if project has none
       handleCreateBook(projectId, `${projects.find((p) => p.id === projectId)?.title || 'Story'} - Volume I`, 'Book 1 of series');
@@ -175,7 +239,7 @@ export default function App() {
   const handleSelectBook = (bookId: string) => {
     setSelectedBookId(bookId);
     const matchedBook = books.find((b) => b.id === bookId);
-    if (matchedBook && matchedBook.projectId) {
+    if (matchedBook && matchedBook.projectId && matchedBook.projectId !== activeProjectId) {
       setActiveProjectId(matchedBook.projectId);
     }
 
@@ -186,27 +250,30 @@ export default function App() {
       saveActiveDocId(scopedDocs[0].id);
       setOpenDocIds([scopedDocs[0].id]);
     } else {
-      // Create Chapter 1 for this book
-      const chapterId = `doc-ch1-${Date.now()}`;
-      const newChapter: MarkdownDoc = {
-        id: chapterId,
-        projectId: matchedBook?.projectId || activeProjectId,
-        bookId,
-        title: 'Chapter 1: The Beginning',
-        category: 'Chapter Draft',
-        content: `# Chapter 1: The Beginning\n\nBegin writing prose for ${matchedBook ? matchedBook.title : 'this story'}...\n`,
-        linkedEntityIds: [],
-        tags: ['chapter'],
-        updatedAt: new Date().toISOString().split('T')[0],
-        wordCount: 10
-      };
-      const nextDocs = [newChapter, ...docs];
-      setDocs(nextDocs);
-      saveDocs(nextDocs);
-      setActiveDocId(chapterId);
-      saveActiveDocId(chapterId);
-      setOpenDocIds([chapterId]);
+      handleCreateBookChapter(matchedBook?.projectId || activeProjectId, bookId, matchedBook?.title || 'Story');
     }
+  };
+
+  const handleCreateBookChapter = (projectId: string, bookId: string, bookTitle: string) => {
+    const chapterId = `doc-ch1-${Date.now()}`;
+    const newChapter: MarkdownDoc = {
+      id: chapterId,
+      projectId,
+      bookId,
+      title: 'Chapter 1: The Beginning',
+      category: 'Chapter Draft',
+      content: `# Chapter 1: The Beginning\n\nBegin writing prose for ${bookTitle}...\n`,
+      linkedEntityIds: [],
+      tags: ['chapter'],
+      updatedAt: new Date().toISOString().split('T')[0],
+      wordCount: 10
+    };
+    const nextDocs = [newChapter, ...docs];
+    setDocs(nextDocs);
+    saveDocs(nextDocs);
+    setActiveDocId(chapterId);
+    saveActiveDocId(chapterId);
+    setOpenDocIds([chapterId]);
   };
 
   // Project Creation Flow
@@ -239,6 +306,10 @@ export default function App() {
     const nextBooks = books.filter((b) => b.projectId !== projIdToDelete);
     setBooks(nextBooks);
     saveBooks(nextBooks);
+
+    const nextDocs = docs.filter((d) => d.projectId !== projIdToDelete);
+    setDocs(nextDocs);
+    saveDocs(nextDocs);
 
     if (activeProjectId === projIdToDelete && nextProjects.length > 0) {
       handleSelectProject(nextProjects[0].id);
@@ -293,29 +364,8 @@ export default function App() {
     setBooks(nextBooks);
     saveBooks(nextBooks);
 
-    // Create Chapter 1 for this new book
-    const newChapterId = `doc-ch1-${Date.now()}`;
-    const newChapter: MarkdownDoc = {
-      id: newChapterId,
-      projectId,
-      bookId: newBookId,
-      title: 'Chapter 1: The Beginning',
-      category: 'Chapter Draft',
-      content: `# Chapter 1: The Beginning\n\nBegin writing chapter prose...\n`,
-      linkedEntityIds: [],
-      tags: ['chapter'],
-      updatedAt: new Date().toISOString().split('T')[0],
-      wordCount: 7
-    };
-
-    const nextDocs = [newChapter, ...docs];
-    setDocs(nextDocs);
-    saveDocs(nextDocs);
-
+    handleCreateBookChapter(projectId, newBookId, title);
     setSelectedBookId(newBookId);
-    setActiveDocId(newChapterId);
-    saveActiveDocId(newChapterId);
-    setOpenDocIds([newChapterId]);
   };
 
   const handleDeleteBook = (idToDelete: string) => {
@@ -337,7 +387,6 @@ export default function App() {
     } else if (type === 'character' || type === 'location' || type === 'faction') {
       setCreateMode(type);
     } else if (type === 'misc') {
-      // Create new misc entry
       const newEntryId = `entry-${Date.now()}`;
       const newEntry: CustomEntry = {
         id: newEntryId,
@@ -372,10 +421,22 @@ export default function App() {
     saveCustomCategories(nextCats);
   };
 
-  const handleDeleteCustomCategory = (categoryId: string) => {
-    const nextCats = customCategories.filter((c) => c.id !== categoryId);
+  const onRequestDeleteCustomCategory = (categoryId: string) => {
+    setConfirmCategoryDeleteId(categoryId);
+  };
+
+  const handleConfirmDeleteCategory = () => {
+    if (!confirmCategoryDeleteId) return;
+    const catId = confirmCategoryDeleteId;
+    const nextCats = customCategories.filter((c) => c.id !== catId);
     setCustomCategories(nextCats);
     saveCustomCategories(nextCats);
+
+    const nextEntries = customEntries.filter((e) => e.categoryId !== catId);
+    setCustomEntries(nextEntries);
+    saveCustomEntries(nextEntries);
+
+    setConfirmCategoryDeleteId(null);
   };
 
   const handleDeleteCustomEntry = (entryId: string) => {
@@ -494,7 +555,6 @@ export default function App() {
       }
     }
 
-    // Create new note doc for character
     const noteId = `doc-char-${char.id}`;
     const newNote: MarkdownDoc = {
       id: noteId,
@@ -513,7 +573,6 @@ export default function App() {
     setDocs(nextDocs);
     saveDocs(nextDocs);
 
-    // Update character with markdownNoteId
     const updatedChar = { ...char, markdownNoteId: noteId };
     handleUpdateCharacter(updatedChar);
 
@@ -563,7 +622,7 @@ export default function App() {
     saveTimeline(nextTime);
   };
 
-  // Entity updates / deletes
+  // Entity updates / deletes with Referential Integrity
   const handleUpdateCharacter = (updated: Character) => {
     const nextChars = characters.map((c) => (c.id === updated.id ? updated : c));
     setCharacters(nextChars);
@@ -587,10 +646,27 @@ export default function App() {
       const nextChars = characters.filter((c) => c.id !== id);
       setCharacters(nextChars);
       saveCharacters(nextChars);
+
+      // Clean up character references in timeline events
+      const nextTimeline = timeline.map((evt) => ({
+        ...evt,
+        characterIds: (evt.characterIds || []).filter((cid) => cid !== id)
+      }));
+      setTimeline(nextTimeline);
+      saveTimeline(nextTimeline);
     } else if (type === 'location') {
       const nextLocs = locations.filter((l) => l.id !== id);
       setLocations(nextLocs);
       saveLocations(nextLocs);
+
+      // Clean up location references in timeline events
+      const nextTimeline = timeline.map((evt) => ({
+        ...evt,
+        locationId: evt.locationId === id ? undefined : evt.locationId,
+        locationIds: (evt.locationIds || []).filter((lid) => lid !== id)
+      }));
+      setTimeline(nextTimeline);
+      saveTimeline(nextTimeline);
     } else if (type === 'faction') {
       const nextFacs = factions.filter((f) => f.id !== id);
       setFactions(nextFacs);
@@ -599,6 +675,8 @@ export default function App() {
       handleDeleteCustomEntry(id);
     }
   };
+
+  const targetCategoryForConfirm = customCategories.find((c) => c.id === confirmCategoryDeleteId);
 
   return (
     <ThemeProvider>
@@ -632,7 +710,7 @@ export default function App() {
             factions={scopedFactions}
             customCategories={scopedCustomCategories}
             customEntries={scopedCustomEntries}
-            timeline={timeline}
+            timeline={scopedTimeline}
             docs={docs}
             selectedBookId={selectedBookId}
             activeDocId={activeDocId}
@@ -653,7 +731,7 @@ export default function App() {
               if (type === 'category') setCreateCategoryOpen(true);
               else handleCreateAction(type);
             }}
-            onDeleteCustomCategory={handleDeleteCustomCategory}
+            onDeleteCustomCategory={onRequestDeleteCustomCategory}
             onDeleteCustomEntry={handleDeleteCustomEntry}
             onUpdateTimelineEvent={handleUpdateTimelineEvent}
             onDeleteTimelineEvent={handleDeleteTimelineEvent}
@@ -691,7 +769,7 @@ export default function App() {
             characters={scopedCharacters}
             locations={scopedLocations}
             factions={scopedFactions}
-            timeline={timeline}
+            timeline={scopedTimeline}
             docs={docs}
             onSelectDoc={handleSelectDoc}
             onOpenEntityDetail={(type, id) => {
@@ -746,6 +824,18 @@ export default function App() {
               message="Are you sure you want to permanently delete this chapter draft? This action cannot be undone."
               confirmText="Delete Chapter"
               onConfirm={handleConfirmDeleteDoc}
+            />
+          )}
+
+          {/* In-App Confirmation Modal for Category Deletion */}
+          {confirmCategoryDeleteId && (
+            <ConfirmationModal
+              isOpen={confirmCategoryDeleteId !== null}
+              onClose={() => setConfirmCategoryDeleteId(null)}
+              title={`Delete Category "${targetCategoryForConfirm?.name || 'Custom'}"?`}
+              message={`Are you sure you want to delete the "${targetCategoryForConfirm?.name}" custom category? All entries inside this category will also be removed.`}
+              confirmText="Delete Category"
+              onConfirm={handleConfirmDeleteCategory}
             />
           )}
         </div>

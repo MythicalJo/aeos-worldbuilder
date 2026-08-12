@@ -35,6 +35,8 @@ interface EntityDetailModalProps {
   onOpenCharacterNote?: (characterId: string) => void;
 }
 
+const FACTION_EMBLEM_PRESETS = ['⚔️', '✨', '🗡️', '🌿', '⚙️', '🛡️', '👑', '🦅', '🐉', '⚖️', '🔮', '📜', '⚓', '⚜️', '🐺'];
+
 export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
   type,
   entityId,
@@ -229,15 +231,27 @@ export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
                           placeholder="Character Name"
                         />
                       </div>
-                      <div>
-                        <label className="text-[10px] font-bold uppercase opacity-60">Title / Role</label>
-                        <input
-                          type="text"
-                          value={charForm.title || ''}
-                          onChange={(e) => setCharForm({ ...charForm, title: e.target.value })}
-                          className={`w-full ${cardBg} border p-1.5 rounded-lg text-xs focus:outline-none focus:border-indigo-500`}
-                          placeholder="Title / Honorific"
-                        />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] font-bold uppercase opacity-60">Title / Honorific</label>
+                          <input
+                            type="text"
+                            value={charForm.title || ''}
+                            onChange={(e) => setCharForm({ ...charForm, title: e.target.value })}
+                            className={`w-full ${cardBg} border p-1.5 rounded-lg text-xs focus:outline-none focus:border-indigo-500`}
+                            placeholder="Title"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase opacity-60">Narrative Role</label>
+                          <input
+                            type="text"
+                            value={charForm.role || ''}
+                            onChange={(e) => setCharForm({ ...charForm, role: e.target.value })}
+                            className={`w-full ${cardBg} border p-1.5 rounded-lg text-xs focus:outline-none focus:border-indigo-500`}
+                            placeholder="e.g. Protagonist, Rival"
+                          />
+                        </div>
                       </div>
                     </>
                   ) : (
@@ -455,13 +469,13 @@ export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
           )}
 
           {/* ========================================================= */}
-          {/* 3. FACTION PROFILE & EMBLEM MANAGEMENT                    */}
+          {/* 3. FACTION PROFILE & EDITABLE EMBLEM MANAGEMENT           */}
           {/* ========================================================= */}
           {type === 'faction' && facObj && (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className={`w-14 h-14 rounded-xl ${cardBg} border flex items-center justify-center text-2xl shrink-0 shadow-md`}>
-                  {facForm.emblem}
+                  {facForm.emblem || '⚔️'}
                 </div>
                 <div className="flex-1 min-w-0">
                   {isEditing ? (
@@ -470,6 +484,7 @@ export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
                       value={facForm.name || ''}
                       onChange={(e) => setFacForm({ ...facForm, name: e.target.value })}
                       className={`w-full ${cardBg} border p-1.5 rounded-lg text-xs font-bold focus:outline-none focus:border-indigo-500`}
+                      placeholder="Faction Name"
                     />
                   ) : (
                     <>
@@ -479,6 +494,43 @@ export const EntityDetailModal: React.FC<EntityDetailModalProps> = ({
                   )}
                 </div>
               </div>
+
+              {/* Faction Icon Editing Control */}
+              {isEditing && (
+                <div className={`p-3 ${cardBg} border rounded-xl space-y-2`}>
+                  <label className="text-[10px] font-bold uppercase opacity-70 block">
+                    Faction Emblem / Icon *
+                  </label>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={facForm.emblem || ''}
+                      onChange={(e) => setFacForm({ ...facForm, emblem: e.target.value })}
+                      placeholder="Custom Emblem (e.g. ⚔️)"
+                      className={`w-24 ${cardBg} border p-1.5 rounded-lg text-center font-bold text-base focus:outline-none focus:border-indigo-500`}
+                    />
+                    <span className="text-[10px] opacity-60">Or pick from preset icon library:</span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {FACTION_EMBLEM_PRESETS.map((iconSymbol) => (
+                      <button
+                        key={iconSymbol}
+                        type="button"
+                        onClick={() => setFacForm({ ...facForm, emblem: iconSymbol })}
+                        className={`w-8 h-8 rounded-lg border text-base flex items-center justify-center transition-all ${
+                          facForm.emblem === iconSymbol
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow scale-105'
+                            : `${cardBg} opacity-80 hover:opacity-100 hover:border-indigo-500`
+                        }`}
+                      >
+                        {iconSymbol}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {isEditing && (
                 <div>

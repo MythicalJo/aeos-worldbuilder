@@ -31,7 +31,7 @@ export interface Character {
   projectId?: string;
   name: string;
   title: string;
-  role: 'Protagonist' | 'Antagonist' | 'Supporting' | 'Historical Legend' | 'Deity/Ancient';
+  role: string;
   status: 'Alive' | 'Deceased' | 'Missing' | 'Exiled' | 'Ascended';
   bookIds: string[];
   factionId?: string;
