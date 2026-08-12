@@ -1,22 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0f172a" />
-      <stop offset="100%" stop-color="#1e1b4b" />
-    </linearGradient>
-    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#fbbf24" />
-      <stop offset="100%" stop-color="#d97706" />
-    </linearGradient>
-    <linearGradient id="purple" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#a855f7" />
-      <stop offset="100%" stop-color="#6b21a8" />
-    </linearGradient>
-  </defs>
-  <rect width="192" height="192" rx="40" fill="url(#bg)" />
-  <rect x="36" y="32" width="120" height="128" rx="12" fill="url(#purple)" stroke="url(#gold)" stroke-width="4" />
-  <path d="M48 32 L48 160" stroke="#fef08a" stroke-width="3" stroke-dasharray="4 4" />
-  <!-- Star / Compass Rose icon -->
-  <path d="M96 64 L103 85 L124 92 L103 99 L96 120 L89 99 L68 92 L89 85 Z" fill="url(#gold)" />
-  <circle cx="96" cy="92" r="5" fill="#ffffff" />
+  <rect width="192" height="192" rx="40" fill="#09090b"/>
+  <rect width="192" height="192" rx="40" fill="none" stroke="#6366f1" stroke-width="4" opacity="0.3"/>
+  <path d="M48 56C48 47.1634 55.1634 40 64 40H128C136.837 40 144 47.1634 144 56V136C144 144.837 136.837 152 128 152H64C55.1634 152 48 144.837 48 136V56Z" fill="#18181b" stroke="#27272a" stroke-width="4"/>
+  <path d="M72 72H120M72 96H110M72 120H96" stroke="#4f46e5" stroke-width="6" stroke-linecap="round"/>
+  <path d="M125 65L145 45C148 42 152 42 155 45C158 48 158 52 155 55L135 75L125 65Z" fill="#6366f1"/>
+  <path d="M125 65L120 80L135 75L125 65Z" fill="#818cf8"/>
 </svg>

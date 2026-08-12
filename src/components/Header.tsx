@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Book, WorldSettings } from '../types';
+import { Book, WorldSettings, Project } from '../types';
 import { canInstallPWA, promptPWAInstall, isAppStandalone } from '../lib/pwa';
 import { exportFullDatabase, importFullDatabase, resetToDefaults, DatabaseDump } from '../lib/storage';
-import { useTheme, AppTheme } from '../context/ThemeContext';
+import { useTheme, AppTheme, ACCENT_COLORS } from '../context/ThemeContext';
 import { useOutsideClick } from '../hooks/useOutsideClick';
 import {
   BookOpen,
@@ -20,14 +20,23 @@ import {
   Sun,
   Moon,
   Coffee,
-  FolderOpen
+  FolderOpen,
+  ChevronDown,
+  User,
+  MapPin,
+  Shield,
+  FileText,
+  Gem,
+  Palette
 } from 'lucide-react';
 
 interface HeaderProps {
   settings: WorldSettings;
-  onUpdateSettings: (settings: WorldSettings) => void;
+  projects: Project[];
+  activeProject: Project | null;
   books: Book[];
   selectedBookId: string;
+  onUpdateSettings: (settings: WorldSettings) => void;
   onSelectBookId: (id: string) => void;
   onOpenProjectManager: () => void;
   onOpenSearch: () => void;
@@ -36,14 +45,16 @@ interface HeaderProps {
   rightSidebarOpen: boolean;
   onToggleRightSidebar: () => void;
   onRefreshData: () => void;
-  onNewDoc: () => void;
+  onCreateAction: (type: 'chapter' | 'character' | 'location' | 'faction' | 'misc' | 'category') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   settings,
-  onUpdateSettings,
+  projects,
+  activeProject,
   books,
   selectedBookId,
+  onUpdateSettings,
   onSelectBookId,
   onOpenProjectManager,
   onOpenSearch,
@@ -52,28 +63,33 @@ export const Header: React.FC<HeaderProps> = ({
   rightSidebarOpen,
   onToggleRightSidebar,
   onRefreshData,
-  onNewDoc
+  onCreateAction
 }) => {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, accent, setAccent, getAccentClasses } = useTheme();
+  const accentClasses = getAccentClasses();
+
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [pwaInstallable, setPwaInstallable] = useState<boolean>(canInstallPWA());
   const [installed, setInstalled] = useState<boolean>(isAppStandalone());
   const [showSettingsMenu, setShowSettingsMenu] = useState<boolean>(false);
   const [showThemeMenu, setShowThemeMenu] = useState<boolean>(false);
+  const [showCreateMenu, setShowCreateMenu] = useState<boolean>(false);
 
   // Editable Project Title state
   const [isEditingTitle, setIsEditingTitle] = useState<boolean>(false);
-  const [projectTitle, setProjectTitle] = useState<string>(settings.seriesTitle || 'My Novel Project');
+  const [projectTitle, setProjectTitle] = useState<string>(activeProject?.title || settings.seriesTitle || 'My Story Project');
 
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const themeMenuRef = useRef<HTMLDivElement>(null);
+  const createMenuRef = useRef<HTMLDivElement>(null);
 
   useOutsideClick(settingsMenuRef, () => setShowSettingsMenu(false), showSettingsMenu);
   useOutsideClick(themeMenuRef, () => setShowThemeMenu(false), showThemeMenu);
+  useOutsideClick(createMenuRef, () => setShowCreateMenu(false), showCreateMenu);
 
   useEffect(() => {
-    setProjectTitle(settings.seriesTitle);
-  }, [settings.seriesTitle]);
+    setProjectTitle(activeProject?.title || settings.seriesTitle);
+  }, [activeProject, settings.seriesTitle]);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -96,7 +112,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const handleSaveTitle = () => {
     setIsEditingTitle(false);
-    if (projectTitle.trim() && projectTitle !== settings.seriesTitle) {
+    if (projectTitle.trim()) {
       onUpdateSettings({
         ...settings,
         seriesTitle: projectTitle.trim()
@@ -118,7 +134,7 @@ export const Header: React.FC<HeaderProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${settings.seriesTitle.toLowerCase().replace(/\s+/g, '_')}_backup.json`;
+    a.download = `${(activeProject?.title || 'story').toLowerCase().replace(/\s+/g, '_')}_backup.json`;
     a.click();
     URL.revokeObjectURL(url);
     setShowSettingsMenu(false);
@@ -135,7 +151,7 @@ export const Header: React.FC<HeaderProps> = ({
         const success = importFullDatabase(dump);
         if (success) {
           onRefreshData();
-          alert('Project data imported successfully!');
+          alert('Storybuilder backup data imported successfully!');
         } else {
           alert('Failed to parse file.');
         }
@@ -145,14 +161,6 @@ export const Header: React.FC<HeaderProps> = ({
     };
     reader.readAsText(file);
     setShowSettingsMenu(false);
-  };
-
-  const handleReset = () => {
-    if (confirm('Reset project data to template defaults?')) {
-      resetToDefaults();
-      onRefreshData();
-      setShowSettingsMenu(false);
-    }
   };
 
   const isSepia = theme === 'sepia';
@@ -173,28 +181,28 @@ export const Header: React.FC<HeaderProps> = ({
   const activeBookTitle =
     selectedBookId === 'all'
       ? 'All Story Books'
-      : books.find((b) => b.id === selectedBookId)?.title || 'Selected Project';
+      : books.find((b) => b.id === selectedBookId)?.title || 'Select Book';
 
   return (
     <header className={`h-12 ${headerBg} border-b flex items-center justify-between px-3 md:px-4 z-30 shrink-0 select-none`}>
-      {/* Left section: Sidebar toggle, Logo & Editable Project Title */}
+      {/* Left Section: Navigation Toggle, Logo & Active Project / Book */}
       <div className="flex items-center gap-2 md:gap-3">
         <button
           onClick={onToggleLeftSidebar}
-          title="Toggle Navigation / Chapter Drawer (Left Sidebar)"
+          title="Toggle Drawer (Left Sidebar)"
           className={`p-1.5 rounded transition-colors ${
-            leftSidebarOpen ? `${btnBg} font-bold text-indigo-500` : 'opacity-70 hover:opacity-100'
+            leftSidebarOpen ? `${btnBg} font-bold ${accentClasses.text}` : 'opacity-70 hover:opacity-100'
           }`}
         >
           <PanelLeft className="w-4 h-4" />
         </button>
 
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-indigo-600 rounded flex items-center justify-center shrink-0 shadow-sm">
+          <div className={`w-6 h-6 ${accentClasses.bg} rounded flex items-center justify-center shrink-0 shadow-sm`}>
             <Feather className="w-3.5 h-3.5 text-white" />
           </div>
 
-          {/* Editable Project Title */}
+          {/* Project Title */}
           <div className="flex items-center gap-1.5">
             <span className="text-[10px] uppercase font-bold tracking-wider opacity-60 hidden sm:inline">
               Project:
@@ -225,10 +233,10 @@ export const Header: React.FC<HeaderProps> = ({
               <div
                 onClick={() => setIsEditingTitle(true)}
                 className="group flex items-center gap-1.5 cursor-pointer px-1.5 py-0.5 rounded hover:bg-black/10 transition-colors"
-                title="Click to Rename Project Title"
+                title="Click to Rename Active Project Title"
               >
-                <h1 className="text-xs md:text-sm font-bold tracking-tight truncate max-w-[160px] sm:max-w-[220px]">
-                  {settings.seriesTitle || 'Untitled Book Project'}
+                <h1 className="text-xs md:text-sm font-bold tracking-tight truncate max-w-[150px] sm:max-w-[200px]">
+                  {activeProject?.title || settings.seriesTitle || 'My Story Project'}
                 </h1>
                 <Edit2 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
@@ -236,49 +244,128 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Book Selector / Project Switcher */}
+        {/* Book Selector Dropdown Button */}
         <button
           onClick={onOpenProjectManager}
           className={`hidden md:flex items-center gap-1.5 ${btnBg} px-2.5 py-1 rounded border text-xs transition-colors`}
-          title="Open Project / Book Manager"
+          title="Open Projects & Books Manager"
         >
-          <BookOpen className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+          <BookOpen className={`w-3.5 h-3.5 ${accentClasses.text} shrink-0`} />
           <span className="font-semibold truncate max-w-[130px]">{activeBookTitle}</span>
           <FolderOpen className="w-3 h-3 opacity-60 ml-0.5" />
         </button>
       </div>
 
-      {/* Middle & Right Section: Actions & Themes */}
+      {/* Middle & Right Section: Universal Create Button, Search, Theme & Settings */}
       <div className="flex items-center gap-2">
-        {/* Quick Search Button */}
+        {/* UNIVERSAL CREATE ACTION BUTTON */}
+        <div className="relative" ref={createMenuRef}>
+          <button
+            onClick={() => setShowCreateMenu(!showCreateMenu)}
+            className={`flex items-center gap-1.5 ${accentClasses.bg} text-white px-3 py-1 rounded-lg text-xs font-bold transition-all shadow-md`}
+            title="Create Chapter, Character, Location, Faction, or Custom Category"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Create</span>
+            <ChevronDown className="w-3 h-3 opacity-80 ml-0.5" />
+          </button>
+
+          {showCreateMenu && (
+            <div className={`absolute right-0 mt-2 w-48 ${headerBg} border rounded-xl shadow-2xl p-1 z-50 text-xs space-y-1`}>
+              <div className="px-2.5 py-1 text-[10px] uppercase font-bold opacity-60 border-b">
+                Create New Action
+              </div>
+
+              <button
+                onClick={() => {
+                  onCreateAction('chapter');
+                  setShowCreateMenu(false);
+                }}
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded hover:bg-black/10 text-left font-bold"
+              >
+                <FileText className={`w-3.5 h-3.5 ${accentClasses.text}`} />
+                <span>Chapter Draft</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  onCreateAction('character');
+                  setShowCreateMenu(false);
+                }}
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded hover:bg-black/10 text-left font-bold"
+              >
+                <User className={`w-3.5 h-3.5 ${accentClasses.text}`} />
+                <span>Character Profile</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  onCreateAction('location');
+                  setShowCreateMenu(false);
+                }}
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded hover:bg-black/10 text-left font-bold"
+              >
+                <MapPin className="w-3.5 h-3.5 text-sky-500" />
+                <span>Place / Location</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  onCreateAction('faction');
+                  setShowCreateMenu(false);
+                }}
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded hover:bg-black/10 text-left font-bold"
+              >
+                <Shield className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Faction / Guild</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  onCreateAction('misc');
+                  setShowCreateMenu(false);
+                }}
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded hover:bg-black/10 text-left font-bold"
+              >
+                <Gem className="w-3.5 h-3.5 text-amber-500" />
+                <span>Misc World Entry</span>
+              </button>
+
+              <div className="border-t my-1" />
+
+              <button
+                onClick={() => {
+                  onCreateAction('category');
+                  setShowCreateMenu(false);
+                }}
+                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded hover:bg-black/10 text-left text-indigo-500 font-bold"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Custom Category</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Quick Search */}
         <button
           onClick={onOpenSearch}
           className={`flex items-center gap-1.5 ${btnBg} px-2.5 py-1 rounded border text-xs transition-colors`}
-          title="Search Notes & Worldbuilder (Ctrl+K)"
+          title="Quick Search (Ctrl+K)"
         >
-          <Search className="w-3.5 h-3.5 text-indigo-500" />
+          <Search className={`w-3.5 h-3.5 ${accentClasses.text}`} />
           <span className="hidden md:inline font-medium">Quick search...</span>
           <kbd className="hidden lg:inline text-[10px] opacity-60 bg-black/10 px-1 py-0.5 rounded">
             ⌘K
           </kbd>
         </button>
 
-        {/* New Chapter / Document Button */}
-        <button
-          onClick={onNewDoc}
-          className={`hidden sm:flex items-center gap-1 ${btnBg} px-2.5 py-1 rounded text-xs font-medium border transition-colors`}
-          title="Create New Chapter / Document"
-        >
-          <Plus className="w-3.5 h-3.5 text-indigo-500" />
-          <span className="hidden md:inline font-bold">New Chapter</span>
-        </button>
-
-        {/* Theme Selector Dropdown */}
+        {/* Theme & Accent Customization Dropdown */}
         <div className="relative" ref={themeMenuRef}>
           <button
             onClick={() => setShowThemeMenu(!showThemeMenu)}
             className={`p-1.5 rounded border ${btnBg} transition-colors flex items-center gap-1 text-xs`}
-            title="Switch Application Theme (Dark / Light / Sepia)"
+            title="Appearance Theme & Accent Customization"
           >
             {theme === 'dark' && <Moon className="w-4 h-4 text-indigo-400" />}
             {theme === 'light' && <Sun className="w-4 h-4 text-amber-500" />}
@@ -286,49 +373,63 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {showThemeMenu && (
-            <div className={`absolute right-0 mt-2 w-36 ${headerBg} border rounded-xl shadow-2xl p-1 z-50 text-xs space-y-1`}>
-              <div className="px-2 py-1 text-[10px] uppercase font-bold opacity-60 border-b">
+            <div className={`absolute right-0 mt-2 w-48 ${headerBg} border rounded-xl shadow-2xl p-2 z-50 text-xs space-y-2`}>
+              <div className="px-2 py-0.5 text-[10px] uppercase font-bold opacity-60 border-b">
                 Appearance Theme
               </div>
 
-              <button
-                onClick={() => {
-                  setTheme('dark');
-                  setShowThemeMenu(false);
-                }}
-                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-left ${
-                  theme === 'dark' ? 'bg-indigo-600 text-white font-bold' : 'hover:bg-black/10'
-                }`}
-              >
-                <Moon className="w-3.5 h-3.5" />
-                <span>Dark</span>
-              </button>
+              <div className="space-y-1">
+                <button
+                  onClick={() => setTheme('dark')}
+                  className={`w-full flex items-center gap-2 px-2 py-1 rounded text-left ${
+                    theme === 'dark' ? 'bg-black/20 font-bold' : 'hover:bg-black/10'
+                  }`}
+                >
+                  <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Dark</span>
+                </button>
 
-              <button
-                onClick={() => {
-                  setTheme('light');
-                  setShowThemeMenu(false);
-                }}
-                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-left ${
-                  theme === 'light' ? 'bg-indigo-600 text-white font-bold' : 'hover:bg-black/10'
-                }`}
-              >
-                <Sun className="w-3.5 h-3.5 text-amber-500" />
-                <span>Light</span>
-              </button>
+                <button
+                  onClick={() => setTheme('light')}
+                  className={`w-full flex items-center gap-2 px-2 py-1 rounded text-left ${
+                    theme === 'light' ? 'bg-black/20 font-bold' : 'hover:bg-black/10'
+                  }`}
+                >
+                  <Sun className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Light</span>
+                </button>
 
-              <button
-                onClick={() => {
-                  setTheme('sepia');
-                  setShowThemeMenu(false);
-                }}
-                className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-left ${
-                  theme === 'sepia' ? 'bg-[#964b00] text-white font-bold' : 'hover:bg-black/10'
-                }`}
-              >
-                <Coffee className="w-3.5 h-3.5 text-amber-700" />
-                <span>Sepia</span>
-              </button>
+                <button
+                  onClick={() => setTheme('sepia')}
+                  className={`w-full flex items-center gap-2 px-2 py-1 rounded text-left ${
+                    theme === 'sepia' ? 'bg-black/20 font-bold' : 'hover:bg-black/10'
+                  }`}
+                >
+                  <Coffee className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Sepia</span>
+                </button>
+              </div>
+
+              <div className="px-2 py-0.5 text-[10px] uppercase font-bold opacity-60 border-b flex items-center justify-between">
+                <span>Accent Color</span>
+                <Palette className="w-3 h-3" />
+              </div>
+
+              <div className="grid grid-cols-3 gap-1.5 p-1">
+                {ACCENT_COLORS.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setAccent(item.id)}
+                    className={`py-1 px-1 rounded-lg text-[10px] font-bold border transition-all flex items-center justify-center gap-1 ${
+                      accent === item.id ? 'ring-2 ring-indigo-500 scale-105 shadow' : 'opacity-80 hover:opacity-100'
+                    }`}
+                    style={{ backgroundColor: `${item.hex}20`, color: item.hex, borderColor: `${item.hex}40` }}
+                  >
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.hex }} />
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -344,8 +445,8 @@ export const Header: React.FC<HeaderProps> = ({
         {!installed && pwaInstallable && (
           <button
             onClick={handlePWAInstall}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded font-bold transition-colors shadow-sm"
-            title="Install Writing App"
+            className={`${accentClasses.bg} text-white text-xs px-3 py-1.5 rounded font-bold transition-colors shadow-sm`}
+            title="Install Storybuilder App"
           >
             Install App
           </button>
@@ -371,7 +472,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={handleExportJSON}
                 className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded hover:bg-black/10 text-left"
               >
-                <Download className="w-3.5 h-3.5 text-indigo-500" />
+                <Download className={`w-3.5 h-3.5 ${accentClasses.text}`} />
                 <span>Export Project (.json)</span>
               </button>
 
@@ -380,14 +481,6 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>Import Project (.json)</span>
                 <input type="file" accept=".json" onChange={handleImportJSON} className="hidden" />
               </label>
-
-              <button
-                onClick={handleReset}
-                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-rose-500 hover:bg-rose-950/20 text-left"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Reset Seed Data</span>
-              </button>
             </div>
           )}
         </div>
@@ -397,7 +490,7 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={onToggleRightSidebar}
           title="Toggle Worldbuilder Reference Drawer (Right Sidebar)"
           className={`p-1.5 rounded border transition-colors ${
-            rightSidebarOpen ? `${btnBg} font-bold text-indigo-500` : `${btnBg} opacity-70 hover:opacity-100`
+            rightSidebarOpen ? `${btnBg} font-bold ${accentClasses.text}` : `${btnBg} opacity-70 hover:opacity-100`
           }`}
         >
           <PanelRight className="w-4 h-4" />

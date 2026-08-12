@@ -1,4 +1,23 @@
-import { Book, Character, Location, Faction, TimelineEvent, MarkdownDoc, WorldSettings } from '../types';
+import { Book, Character, Location, Faction, TimelineEvent, MarkdownDoc, WorldSettings, Project, CustomCategory, CustomEntry } from '../types';
+
+export const initialProjects: Project[] = [
+  {
+    id: "project-1",
+    title: "Aethelgard Realm",
+    description: "Epic High Fantasy world container featuring the Aether Crystal saga.",
+    authorName: "J.R. Vance",
+    linkedProjectIds: [],
+    createdAt: "2026-01-01"
+  },
+  {
+    id: "project-2",
+    title: "Starlight Chronicles",
+    description: "Sci-Fi Space Fantasy saga in the Nebula Sector.",
+    authorName: "J.R. Vance",
+    linkedProjectIds: [],
+    createdAt: "2026-02-01"
+  }
+];
 
 export const initialWorldSettings: WorldSettings = {
   worldTitle: "Aethelgard Realm",
@@ -8,12 +27,14 @@ export const initialWorldSettings: WorldSettings = {
   primaryMagicSystem: "Aetherial Resonance",
   mainTheme: "Power corrupts the sacred, but fate binds the forgotten.",
   magicSystemName: "Aetherial Resonance",
-  currentBookId: "book-1"
+  currentBookId: "book-1",
+  activeProjectId: "project-1"
 };
 
 export const initialBooks: Book[] = [
   {
     id: "book-1",
+    projectId: "project-1",
     title: "Trilogy Book 1: The Sunken Crown",
     subtitle: "Book I of Aethelgard",
     order: 1,
@@ -23,8 +44,9 @@ export const initialBooks: Book[] = [
   },
   {
     id: "book-standalone",
+    projectId: "project-1",
     title: "Standalone A: Chronicles of Ythan",
-    subtitle: "Standalone Worldbuilding Legend",
+    subtitle: "Standalone Legend",
     order: 2,
     status: "Published",
     summary: "A standalone chronicle detailing the lost submerged city of Ythan and the rogue cartographers who mapped the Sunken Delta.",
@@ -32,6 +54,7 @@ export const initialBooks: Book[] = [
   },
   {
     id: "book-2",
+    projectId: "project-1",
     title: "Trilogy Book 2: Whispers of the Void",
     subtitle: "Book II of Aethelgard",
     order: 3,
@@ -41,518 +64,276 @@ export const initialBooks: Book[] = [
   },
   {
     id: "book-3",
+    projectId: "project-1",
     title: "Trilogy Book 3: The Eternal Pyre",
     subtitle: "Book III of Aethelgard",
     order: 4,
     status: "Planning",
     summary: "The final clash at the Silverpeak Mountains where all three elemental spires must be reignited before the sun sets forever upon the realm.",
     yearRange: "1425 TA"
+  },
+  {
+    id: "book-starlight-1",
+    projectId: "project-2",
+    title: "Starlight Book 1: Beyond the Nebula",
+    subtitle: "Book I of Nebula",
+    order: 1,
+    status: "Drafting",
+    summary: "Commanding the starship Vanguard, Captain Vane navigates rogue asteroids and uncharted alien outposts.",
+    yearRange: "3042 Star Era"
   }
 ];
 
 export const initialFactions: Faction[] = [
   {
     id: "fac-1",
+    projectId: "project-1",
     name: "Sunspire Covenant",
     emblem: "✨",
+    motto: "By Light We Prevail",
     allegiance: "Order",
     leaderCharacterId: "char-2",
-    description: "An ancient order of battle-mages and paladins pledged to protect the royal lineage and guard the Aether Core.",
-    motto: "By Light We Prevail, In Shadow We Guard.",
-    influenceLevel: "Dominant"
+    description: "An ancient order of battle-mages and paladins pledged to protect the royal lineage and guard the Aether Core."
   },
   {
     id: "fac-2",
-    name: "Shadow Veil Syndicate",
+    projectId: "project-1",
+    name: "Shadowbound Syndicate",
     emblem: "🗡️",
-    allegiance: "Rebel",
-    leaderCharacterId: "char-6",
-    description: "A guild of rogues, information brokers, and relic hunters operating from the subterranean passages beneath the capital.",
-    motto: "Unseen, Unbound, Undefeated.",
-    influenceLevel: "Regional"
+    motto: "In Shadows We Rule",
+    allegiance: "Chaos",
+    leaderCharacterId: "char-4",
+    description: "A clandestine guild operating from the Obsidian Trench, practicing forbidden Void Magic."
   },
   {
     id: "fac-3",
-    name: "Ash Keepers",
-    emblem: "🔥",
-    allegiance: "Shadow",
-    leaderCharacterId: "char-5",
-    description: "Fanatical cultists devoted to the Void Titan, seeking to dismantle elemental magic and usher in total entropy.",
-    motto: "From Ash We Came, To Ash All Returns.",
-    influenceLevel: "Secret Society"
+    projectId: "project-1",
+    name: "Circle of Verdant Weavers",
+    emblem: "🌿",
+    motto: "Guard the Living Roots",
+    allegiance: "Nature Neutral",
+    leaderCharacterId: "char-3",
+    description: "Druids and herbalists guarding the Whispering Woods, capable of manipulating living flora."
   },
   {
     id: "fac-4",
-    name: "Knights of Aethelgard",
-    emblem: "🛡️",
-    allegiance: "Neutral",
-    leaderCharacterId: "char-3",
-    description: "The official heavy military order of the High Realm, fiercely loyal to Queen Seraphina.",
-    motto: "Honor Iron, Defend the Sovereign.",
-    influenceLevel: "Dominant"
+    projectId: "project-1",
+    name: "Ironclad Merchant League",
+    emblem: "⚙️",
+    motto: "Gold Controls the Skyways",
+    allegiance: "Mercantile",
+    description: "Wealthy trade barons controlling the Skyway Fleet and trade routes across the Sunken Delta."
   }
 ];
 
 export const initialCharacters: Character[] = [
   {
     id: "char-1",
+    projectId: "project-1",
     name: "Eldrin Vance",
-    title: "Archive Master & Glyph Reader",
+    title: "Master Archivist & Aether Scribe",
     role: "Protagonist",
     status: "Alive",
     bookIds: ["book-1", "book-2", "book-3"],
     factionId: "fac-1",
     locationId: "loc-1",
-    description: "A young, brilliant archivist who inadvertently unlocked the forbidden Glyph of Primordials while translating ancient tablets in the Royal Vault.",
-    avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&h=300&fit=crop",
-    traits: ["Intellectual", "Cautious", "Glyph-Sensitive", "Reluctant Hero"],
-    magicAffinity: "Aetheric Scribing & Time Weaving",
-    markdownNoteId: "doc-1",
-    quote: "Knowledge isn't power until someone lights the candle in the dark."
+    description: "Born in the Lower Rings of Aethelgard, Eldrin mastered rune deciphering at a young age. His touch resonates with ancient Aetherite.",
+    avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+    traits: ["Intellectual", "Cautious", "Relentless"],
+    magicAffinity: "Aetherial Resonance & Glyph Scribing",
+    quote: "Truth is not found in victory speeches, but buried beneath the ruins of forgotten empires.",
+    markdownNoteId: "doc-char-1"
   },
   {
     id: "char-2",
-    name: "High Mage Valeria",
-    title: "Grand Chancellor of Sunspire",
-    role: "Supporting",
+    projectId: "project-1",
+    name: "Kaelen Drake",
+    title: "Knight Commander of the Sunspire",
+    role: "Protagonist",
     status: "Alive",
     bookIds: ["book-1", "book-2"],
     factionId: "fac-1",
     locationId: "loc-1",
-    description: "Senior councilor of the Sunspire Covenant whose strict adherence to dogma masks a painful secret regarding the Void Titan's origin.",
-    avatarUrl: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&h=300&fit=crop",
-    traits: ["Disciplined", "Formidable", "Secretive", "Light-Wielder"],
-    magicAffinity: "Solar Pyromancy & Barrier Weaving",
-    markdownNoteId: "doc-2",
-    quote: "The light does not compromise with the abyss."
+    description: "Sworn protector of the High Citadel. Wields the Sunforged Greatsword and commands the Vanguard Garrison.",
+    avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
+    traits: ["Honorable", "Stubborn", "Tactical"],
+    magicAffinity: "Solar Pyromancy",
+    quote: "My blade does not falter when the realm bleeds.",
+    markdownNoteId: "doc-char-2"
   },
   {
     id: "char-3",
-    name: "Lord Kaelen Drake",
-    title: "The Iron Commander",
+    projectId: "project-1",
+    name: "Lyra Shadowstep",
+    title: "Rogue Warden of the Whispering Woods",
     role: "Supporting",
     status: "Alive",
-    bookIds: ["book-1", "book-2", "book-3"],
-    factionId: "fac-4",
+    bookIds: ["book-1", "book-standalone", "book-2"],
+    factionId: "fac-3",
     locationId: "loc-2",
-    description: "A battle-hardened commander who earned his scars defending the Silverpeak Pass during the Siege of the Frost Giants.",
-    avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop",
-    traits: ["Tactical", "Stoic", "Unflinching Loyalty", "Swordsmaster"],
-    magicAffinity: "Earth Manipulation & Rune Armor",
-    markdownNoteId: "doc-3",
-    quote: "Steel holds true when magic falters."
+    description: "A silent scout who can blend into foliage and shadows. Knows every secret passage beneath the roots.",
+    avatarUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80",
+    traits: ["Agile", "Secretive", "Compassionate"],
+    magicAffinity: "Shadow Camouflage & Verdant Whispers",
+    quote: "Listen carefully to the trees; they remember who spilled blood on their soil."
   },
   {
     id: "char-4",
-    name: "Queen Seraphina III",
-    title: "Sovereign of the Radiant Throne",
-    role: "Supporting",
-    status: "Alive",
-    bookIds: ["book-1", "book-3"],
-    factionId: "fac-4",
-    locationId: "loc-1",
-    description: "The youthful monarch struggling to hold the kingdom together amidst noble rebellions and economic ruin.",
-    avatarUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&h=300&fit=crop",
-    traits: ["Diplomatic", "Visionary", "Burdened", "Regal"],
-    magicAffinity: "Empathic Resonance",
-    quote: "A crown is a anvil upon which a ruler's soul is shaped."
-  },
-  {
-    id: "char-5",
-    name: "Malakor the Undying",
-    title: "Herald of Entropy",
+    projectId: "project-1",
+    name: "Archmage Malakor",
+    title: "The Void Weaver",
     role: "Antagonist",
     status: "Alive",
     bookIds: ["book-1", "book-2", "book-3"],
-    factionId: "fac-3",
-    locationId: "loc-4",
-    description: "An ancient sorcerer who transcended mortality through shadow alchemy 800 years ago and seeks the total dissolution of time.",
-    avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&h=300&fit=crop",
-    traits: ["Ruthless", "Ancient", "Nihilistic", "Master Strategist"],
-    magicAffinity: "Void Corruption & Necromancy",
-    quote: "All empires are merely embers waiting to freeze."
-  },
-  {
-    id: "char-6",
-    name: "Lyra Shadowstep",
-    title: "Master of the Veil",
-    role: "Protagonist",
-    status: "Alive",
-    bookIds: ["book-2", "book-3"],
     factionId: "fac-2",
     locationId: "loc-3",
-    description: "An agile thief raised in the underground tunnels of Ythan who possesses rare shadow-walking abilities.",
-    avatarUrl: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=300&h=300&fit=crop",
-    traits: ["Cunning", "Agile", "Distrustful", "Loyal to Friends"],
-    magicAffinity: "Shadow Meld & Dual Dagger Channeling",
-    quote: "If you didn't want it stolen, you shouldn't have left it unguarded."
-  },
-  {
-    id: "char-7",
-    name: "Brother Theron",
-    title: "Keeper of Forgotten Hymns",
-    role: "Historical Legend",
-    status: "Deceased",
-    bookIds: ["book-1"],
-    factionId: "fac-1",
-    locationId: "loc-5",
-    description: "The 12th Century monk who first bound the Void Titan beneath the Whispering Forest using silver seals.",
-    avatarUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop",
-    traits: ["Self-Sacrificing", "Holy", "Scholarly"],
-    magicAffinity: "Divine Binding Seals",
-    quote: "Let my bones be the threshold they shall not cross."
-  },
-  {
-    id: "char-8",
-    name: "Captain Vane",
-    title: "Skyship Marauder",
-    role: "Supporting",
-    status: "Alive",
-    bookIds: ["book-2", "book-3"],
-    factionId: "fac-2",
-    locationId: "loc-2",
-    description: "Captain of the 'Aether Corsair', an experimental brass skyship powered by crystal propulsion.",
-    avatarUrl: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&h=300&fit=crop",
-    traits: ["Flamboyant", "Daring", "Mercenary Spirit"],
-    magicAffinity: "Wind Crafting & Airship Navigation",
-    quote: "The sky has no borders, and neither do my prices."
+    description: "Former High Scholar of Aethelgard turned dark sorcerer, seeking to shatter the Aether Core.",
+    avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
+    traits: ["Ruthless", "Genius", "Corrupted"],
+    magicAffinity: "Void Corruption & Necromantic Spores",
+    quote: "Your world is built upon a cracked foundation. I am merely hastening the collapse."
   }
 ];
 
 export const initialLocations: Location[] = [
   {
     id: "loc-1",
+    projectId: "project-1",
     name: "Citadel of Aethelgard",
-    type: "City",
-    region: "Central Plains of Solis",
+    type: "High Citadel & Royal Seat",
+    region: "Central Spires",
+    description: "Towering white-marble citadel housing the Aether Core crystal. Its spires pierce the cloud layer.",
     bookIds: ["book-1", "book-2", "book-3"],
+    imageUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80",
+    dangerLevel: "Safe",
     controllingFactionId: "fac-1",
-    description: "A sprawling white-stone metropolis built around three soaring towers of radiant marble and glass, anchored over the Great Aether Spire.",
-    imageUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&h=400&fit=crop",
-    landmarks: ["The Grand Vault of Glyphs", "Radiant Throne Room", "Sunspire Cathedral", "Subterranean Aqueducts"],
-    markdownNoteId: "doc-4",
-    dangerLevel: "Safe"
+    landmarks: ["The Sunspire Tower", "Royal Vaults", "Great Library of Runes"]
   },
   {
     id: "loc-2",
-    name: "Silverpeak Mountains",
-    type: "Fortress",
-    region: "Northern Frostlands",
-    bookIds: ["book-1", "book-3"],
-    controllingFactionId: "fac-4",
-    description: "A razor-sharp mountain range glistening with mineral iron and silver ore, housing impregnable stone watchtowers.",
-    imageUrl: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&h=400&fit=crop",
-    landmarks: ["Frostbite Gate", "The High Bastion", "Dragon-Chasm Bridge"],
-    dangerLevel: "Moderate"
+    projectId: "project-1",
+    name: "Whispering Woods",
+    type: "Ancient Forest Realm",
+    region: "Eastern Reaches",
+    description: "Dense, bio-luminescent forest where ancient trees glow blue beneath the moonlight.",
+    bookIds: ["book-1", "book-standalone"],
+    imageUrl: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=800&q=80",
+    dangerLevel: "Moderate",
+    controllingFactionId: "fac-3",
+    landmarks: ["Heartwood Shrine", "Moonlit Clearing", "The Glowing Canopy"]
   },
   {
     id: "loc-3",
-    name: "Sunken Ruins of Ythan",
-    type: "Sacred Site",
-    region: "Sinking Delta",
-    bookIds: ["book-1", "book-2", "book-standalone"],
-    controllingFactionId: "fac-2",
-    description: "Half-submerged ancient temples overgrown with phosphorescent moss, home to black-market relic traders and shadow operatives.",
-    imageUrl: "https://images.unsplash.com/photo-1509114397022-ed747cca3f65?w=600&h=400&fit=crop",
-    landmarks: ["Submerged Plaza of Kings", "The Drowned Library", "Thieves' Haven Docks"],
-    dangerLevel: "Perilous"
-  },
-  {
-    id: "loc-4",
+    projectId: "project-1",
     name: "Obsidian Trench",
-    type: "Dungeon",
-    region: "The Ash Waste",
+    type: "Subterranean Volcanic Ruin",
+    region: "Southern Wastes",
+    description: "A scorched rift filled with black volcanic glass and flowing magma channels.",
     bookIds: ["book-2", "book-3"],
-    controllingFactionId: "fac-3",
-    description: "A jagged volcanic chasm emitting dark sulfurous smoke and void particles, where Malakor built his dark crucible.",
-    imageUrl: "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=600&h=400&fit=crop",
-    landmarks: ["Crucible of Souls", "The Black Gate", "Lake of Magma"],
-    dangerLevel: "Forbidden"
+    imageUrl: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80",
+    dangerLevel: "Perilous",
+    controllingFactionId: "fac-2",
+    landmarks: ["Magma Forge", "The Void Gate", "Brimstone Keep"]
+  }
+];
+
+export const initialCustomCategories: CustomCategory[] = [
+  {
+    id: "cat-relics",
+    projectId: "project-1",
+    name: "Relics & Artifacts",
+    iconName: "Gem",
+    description: "Magical artifacts and ancient relics of Aethelgard."
+  }
+];
+
+export const initialCustomEntries: CustomEntry[] = [
+  {
+    id: "entry-1",
+    projectId: "project-1",
+    categoryId: "misc",
+    title: "The Rite of Unmaking",
+    subtitle: "Forbidden Ritual",
+    description: "An ancient spell recorded in the Shadow Codex that fractures elemental spires.",
+    tags: ["magic", "ritual"],
+    updatedAt: "2026-08-10"
   },
   {
-    id: "loc-5",
-    name: "Whispering Forest",
-    type: "Wilderness",
-    region: "Sylvan Reach",
-    bookIds: ["book-1"],
-    controllingFactionId: "fac-1",
-    description: "A dense, ancient woodland where trees echo the voices of forgotten centuries and magical fey creatures roam.",
-    imageUrl: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=600&h=400&fit=crop",
-    landmarks: ["Tree of Memory", "Silver Shrine", "Brother Theron's Tomb"],
-    dangerLevel: "Moderate"
-  },
-  {
-    id: "loc-6",
-    name: "Oakhaven Outpost",
-    type: "City",
-    region: "Southern Borderlands",
-    bookIds: ["book-1", "book-2"],
-    controllingFactionId: "fac-4",
-    description: "A bustling frontier trading town constructed from heavy oak timber, serving as the gateway to unexplored lands.",
-    imageUrl: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&h=400&fit=crop",
-    landmarks: ["The Laughing Dragon Inn", "Lumber Merchant Guild", "Watchman Citadel"],
-    dangerLevel: "Safe"
+    id: "entry-2",
+    projectId: "project-1",
+    categoryId: "cat-relics",
+    title: "The Aether Core Crown",
+    subtitle: "Royal Artifact",
+    description: "Forged in the First Era, this crown channels the raw magic of the Sunspire.",
+    tags: ["relic", "crown"],
+    updatedAt: "2026-08-11"
   }
 ];
 
 export const initialTimelineEvents: TimelineEvent[] = [
   {
-    id: "evt-1",
-    title: "Discovery of the Aether Spires",
-    year: 100,
-    yearLabel: "Year 100 DA (Dawn Era)",
-    era: "Age of Dawn",
-    bookId: "book-1",
-    bookFilterTag: "Trilogy Book 1",
-    eventType: "Discovery",
-    characterIds: ["char-7"],
-    locationIds: ["loc-1"],
-    summary: "First scholars locate the glowing crystalline monoliths beneath the central continent, laying the foundation for Aethelgard.",
-    importance: "World-Changing"
-  },
-  {
-    id: "evt-2",
-    title: "First Cataclysm & Void Binding",
-    year: 620,
-    yearLabel: "Year 620 DA (Dawn Era)",
-    era: "Age of Dawn",
-    bookId: "book-1",
-    bookFilterTag: "Trilogy Book 1",
-    eventType: "Cataclysm",
-    characterIds: ["char-7", "char-5"],
-    locationIds: ["loc-5"],
-    summary: "Brother Theron sacrifices his life force to bind the Void Titan in the depths beneath Whispering Forest.",
-    importance: "World-Changing"
-  },
-  {
-    id: "evt-sa-1",
-    title: "Mapping of the Submerged Plaza",
-    year: 1375,
-    yearLabel: "Year 1375 TA (Standalone Era)",
-    era: "The Shattered Crown",
-    bookId: "book-standalone",
-    bookFilterTag: "Standalone A",
-    eventType: "Discovery",
-    characterIds: ["char-6"],
-    locationIds: ["loc-3"],
-    summary: "Rogue cartographers produce the first accurate map of Ythan's subterranean flooded chambers.",
-    importance: "Major"
-  },
-  {
-    id: "evt-3",
-    title: "Coronation of Queen Seraphina III",
-    year: 1415,
-    yearLabel: "Year 1415 TA (Third Age)",
-    era: "The Shattered Crown",
-    bookId: "book-1",
-    bookFilterTag: "Trilogy Book 1",
-    eventType: "Coronation",
-    characterIds: ["char-4", "char-3"],
-    locationIds: ["loc-1"],
-    summary: "Following the sudden tragic illness of King Roderick, Seraphina ascends the throne at age 19 amidst political strife.",
-    importance: "Major"
-  },
-  {
-    id: "evt-4",
-    title: "The Glyph Vault Fracture",
+    id: "event-1",
+    projectId: "project-1",
+    title: "Shattering of the Aether Crystal",
     year: 1420,
-    yearLabel: "Year 1420 TA (Book I Opening)",
+    yearLabel: "Year 1420 TA",
     era: "The Shattered Crown",
-    bookId: "book-1",
+    summary: "Archmage Malakor destabilizes the central crystal spire, causing magic surges across Aethelgard.",
+    eventType: "Cataclysm",
     bookFilterTag: "Trilogy Book 1",
-    eventType: "Magic Surge",
-    characterIds: ["char-1", "char-2"],
-    locationIds: ["loc-1"],
-    summary: "Archivist Eldrin Vance triggers an explosive magic resonance while deciphering ancient glyph tablets, cracking the vault floor.",
-    importance: "World-Changing"
+    importance: "World-Changing",
+    bookId: "book-1",
+    characterIds: ["char-1", "char-4"],
+    locationId: "loc-1"
   },
   {
-    id: "evt-5",
-    title: "Siege of the Frostbite Gate",
+    id: "event-2",
+    projectId: "project-1",
+    title: "Battle of the Whispering Woods",
     year: 1421,
-    yearLabel: "Year 1421 TA (Book I Midpoint)",
+    yearLabel: "Year 1421 TA",
     era: "The Shattered Crown",
-    bookId: "book-1",
+    summary: "The Sunspire Covenant clashes with Void cultists hiding within the bioluminescent forest.",
+    eventType: "Battle",
     bookFilterTag: "Trilogy Book 1",
-    eventType: "Battle",
-    characterIds: ["char-3", "char-5"],
-    locationIds: ["loc-2"],
-    summary: "Lord Kaelen Drake repels an advance force of shadow-infected beasts at the Silverpeak Pass.",
-    importance: "Major"
-  },
-  {
-    id: "evt-6",
-    title: "Fall of the Ythan Drowned Library",
-    year: 1422,
-    yearLabel: "Year 1422 TA (Book I Climax)",
-    era: "The Shattered Crown",
+    importance: "Major",
     bookId: "book-1",
-    bookFilterTag: "Trilogy Book 1",
-    eventType: "Battle",
-    characterIds: ["char-1", "char-6", "char-5"],
-    locationIds: ["loc-3"],
-    summary: "Malakor's agents raze the secret vault of Ythan, stealing the Second Fragment of the Dark Codex.",
-    importance: "Major"
-  },
-  {
-    id: "evt-7",
-    title: "The Skyship Skirmish over Ash Waste",
-    year: 1423,
-    yearLabel: "Year 1423 TA (Book II Opening)",
-    era: "Age of Ashes",
-    bookId: "book-2",
-    bookFilterTag: "Trilogy Book 2",
-    eventType: "Battle",
-    characterIds: ["char-8", "char-6", "char-3"],
-    locationIds: ["loc-4"],
-    summary: "Captain Vane channels wind magic to maneuver the 'Aether Corsair' past void drake patrols.",
-    importance: "Minor"
-  },
-  {
-    id: "evt-8",
-    title: "Discovery of the Shadow Altar",
-    year: 1424,
-    yearLabel: "Year 1424 TA (Book II Midpoint)",
-    era: "Age of Ashes",
-    bookId: "book-2",
-    bookFilterTag: "Trilogy Book 2",
-    eventType: "Discovery",
-    characterIds: ["char-1", "char-6"],
-    locationIds: ["loc-4"],
-    summary: "Eldrin and Lyra infiltrate the Obsidian Trench and witness the ritual awakening of shadow soldiers.",
-    importance: "Major"
-  },
-  {
-    id: "evt-9",
-    title: "The Three Spires Alignment",
-    year: 1425,
-    yearLabel: "Year 1425 TA (Book III Climax)",
-    era: "The Convergence",
-    bookId: "book-3",
-    bookFilterTag: "Trilogy Book 3",
-    eventType: "Magic Surge",
-    characterIds: ["char-1", "char-2", "char-3", "char-4", "char-5", "char-6"],
-    locationIds: ["loc-1", "loc-2", "loc-3"],
-    summary: "The elemental spires align with the celestial eclipse, triggering the final battle for Aethelgard's existence.",
-    importance: "World-Changing"
+    characterIds: ["char-2", "char-3"],
+    locationId: "loc-2"
   }
 ];
 
 export const initialMarkdownDocs: MarkdownDoc[] = [
   {
     id: "doc-1",
-    title: "Eldrin Vance — Character Profile",
-    category: "Character Profile",
-    content: `# Eldrin Vance — Archive Master
-
-> *"Knowledge isn't power until someone lights the candle in the dark."*
-
-## Overview
-**Eldrin Vance** is the main protagonist of *The Sunken Crown* (Book I). Born in the humble outskirts of [[Location: Oakhaven Outpost]], Eldrin's innate talent for recognizing ancient **Aetheric Glyphs** earned him a scholarship at the [[Location: Citadel of Aethelgard]].
-
-## Relationships
-- **Mentor:** [[Character: High Mage Valeria]]
-- **Allies:** [[Character: Lyra Shadowstep]], [[Character: Lord Kaelen Drake]]
-- **Antagonist:** [[Character: Malakor the Undying]]
-- **Faction:** [[Faction: Sunspire Covenant]]
-
-## Magic & Capabilities
-1. **Glyph Deciphering:** Can read pre-cataclysmic scripts without spell failure.
-2. **Time Weaving:** Short localized bursts of temporal slowdown (costly on physical stamina).
-3. **Aether Resonance:** Detects hidden magic ley lines through physical touch.
-
-## Narrative Arc
-In Book I, Eldrin's curiosity causes the crack in the Vault floor during [[Event: The Glyph Vault Fracture]]. Driven by guilt and honor, he embarks on a quest across the realm to seal the breach before [[Character: Malakor the Undying]] awakens.
-`,
+    projectId: "project-1",
+    bookId: "book-1",
+    title: "Chapter 1: The Fracture at Midnight",
+    category: "Chapter Draft",
+    content: `# Chapter 1: The Fracture at Midnight\n\nThe white marble floor of the Great Library shuddered beneath Eldrin's boots. A high-pitched resonance, like a crystal goblet struck by iron, vibrated through the air.\n\n"It is starting," [[Eldrin Vance]] whispered, clutching his leather notebook. High above in the [[Citadel of Aethelgard]], the Aether Crystal was beginning to crack.\n\nFrom the balcony, [[Kaelen Drake]] drew his sword...`,
     linkedEntityIds: [
-      { type: 'character', id: 'char-1', name: 'Eldrin Vance' },
-      { type: 'character', id: 'char-2', name: 'High Mage Valeria' },
-      { type: 'character', id: 'char-6', name: 'Lyra Shadowstep' },
-      { type: 'location', id: 'loc-1', name: 'Citadel of Aethelgard' }
+      { type: "character", id: "char-1", name: "Eldrin Vance" },
+      { type: "location", id: "loc-1", name: "Citadel of Aethelgard" },
+      { type: "character", id: "char-2", name: "Kaelen Drake" }
     ],
-    tags: ["protagonist", "archivist", "aether-magic", "book-1"],
+    tags: ["chapter-1", "draft"],
     updatedAt: "2026-08-11",
-    wordCount: 185
+    wordCount: 84
   },
   {
     id: "doc-2",
-    title: "Aetherial Resonance — Magic System Rules",
-    category: "Magic System",
-    content: `# Aetherial Resonance — Magic System Codex
-
-## Core Fundamentals
-In the world of **Aethelgard**, magic is not invoked through spoken incantations alone, but through **Resonance Frequency** with the subterranean [[Location: Citadel of Aethelgard]] Aether Core.
-
-### The Four Harmonic Strands
-1. **Solar Pyromancy (Light & Heat)** — Harnessed by [[Faction: Sunspire Covenant]] paladins and [[Character: High Mage Valeria]].
-2. **Tectonic Rune Crafting (Matter & Defense)** — Practiced by [[Character: Lord Kaelen Drake]] and the mountain dwarves of [[Location: Silverpeak Mountains]].
-3. **Atmospheric Weaving (Wind & Flight)** — Used by skyship captains like [[Character: Captain Vane]].
-4. **Shadow Entropy (Void & Decay)** — Forbidden strand mastered by [[Character: Malakor the Undying]] and his cultists at [[Location: Obsidian Trench]].
-
-## Limitations & Costs
-- **Resonance Burn:** Overusing magic causes calcification of blood vessels, turning skin into crystalline glass.
-- **Rift Backlash:** Drawing power without an anchor node risks triggering localized elemental quakes like [[Event: The Glyph Vault Fracture]].
-`,
-    linkedEntityIds: [
-      { type: 'location', id: 'loc-1', name: 'Citadel of Aethelgard' },
-      { type: 'character', id: 'char-2', name: 'High Mage Valeria' },
-      { type: 'character', id: 'char-5', name: 'Malakor the Undying' }
-    ],
-    tags: ["magic-rules", "worldbuilding", "aether", "codex"],
-    updatedAt: "2026-08-10",
-    wordCount: 172
-  },
-  {
-    id: "doc-3",
-    title: "The Citadel of Aethelgard — Location Atlas",
-    category: "Location Atlas",
-    content: `# The Citadel of Aethelgard
-
-The crown jewel of the realm, ruled by [[Character: Queen Seraphina III]] with military defense directed by [[Character: Lord Kaelen Drake]].
-
-## Geography & Key Sites
-- **The Grand Vault of Glyphs:** Located 300 meters beneath the central courtyard. Guarded by [[Faction: Sunspire Covenant]].
-- **Subterranean Aqueducts:** Secret smuggling routes maintained by [[Character: Lyra Shadowstep]] and [[Faction: Shadow Veil Syndicate]].
-- **Radiant Throne Room:** Featuring stained-glass windows depicting [[Event: Discovery of the Aether Spires]].
-
-## Defense Systems
-Surrounded by triple-layered granite walls imbued with anti-void wards created by [[Character: Brother Theron]] during the Dawn Era.
-`,
-    linkedEntityIds: [
-      { type: 'location', id: 'loc-1', name: 'Citadel of Aethelgard' },
-      { type: 'character', id: 'char-4', name: 'Queen Seraphina III' },
-      { type: 'character', id: 'char-3', name: 'Lord Kaelen Drake' }
-    ],
-    tags: ["capital", "city", "atlas", "book-1"],
-    updatedAt: "2026-08-09",
-    wordCount: 128
-  },
-  {
-    id: "doc-4",
-    title: "Book I Outline — The Sunken Crown",
+    projectId: "project-1",
+    bookId: "book-1",
+    title: "Chapter 2: Shadow Over the Whispering Woods",
     category: "Chapter Draft",
-    content: `# Book I: The Sunken Crown — Plot Outline
-
-## Act I: The Shattered Vault (Chapters 1 - 8)
-- **Chapter 1:** [[Character: Eldrin Vance]] works late in the Vault of Glyphs. Triggers [[Event: The Glyph Vault Fracture]].
-- **Chapter 2:** [[Character: High Mage Valeria]] interrogates Eldrin. Instead of imprisonment, she commands him to investigate the ancient seals.
-- **Chapter 3:** Introduction of [[Character: Queen Seraphina III]] and political tension in the capital.
-
-## Act II: The Journey North (Chapters 9 - 18)
-- **Chapter 10:** Travel to [[Location: Silverpeak Mountains]]. Meeting with [[Character: Lord Kaelen Drake]].
-- **Chapter 14:** [[Event: Siege of the Frostbite Gate]] — Kaelen leads defensive battle against shadow beasts.
-
-## Act III: The Sunken Secrets (Chapters 19 - 25)
-- **Chapter 20:** Descent into [[Location: Sunken Ruins of Ythan]]. Team up with [[Character: Lyra Shadowstep]].
-- **Chapter 24:** [[Event: Fall of the Ythan Drowned Library]] — Confrontation with [[Character: Malakor the Undying]].
-`,
+    content: `# Chapter 2: Shadow Over the Whispering Woods\n\nThe air smelled of ozone and damp moss. [[Lyra Shadowstep]] crouched on a high branch, looking down at the void cultists marching towards the [[Whispering Woods]].\n\n[[Archmage Malakor]] raised his hands, and dark spores began to bloom...`,
     linkedEntityIds: [
-      { type: 'character', id: 'char-1', name: 'Eldrin Vance' },
-      { type: 'character', id: 'char-5', name: 'Malakor the Undying' },
-      { type: 'location', id: 'loc-2', name: 'Silverpeak Mountains' }
+      { type: "character", id: "char-3", name: "Lyra Shadowstep" },
+      { type: "location", id: "loc-2", name: "Whispering Woods" },
+      { type: "character", id: "char-4", name: "Archmage Malakor" }
     ],
-    tags: ["outline", "book-1", "chapters", "draft"],
+    tags: ["chapter-2", "draft"],
     updatedAt: "2026-08-11",
-    wordCount: 160
+    wordCount: 52
   }
 ];

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Character, Location, Faction, MarkdownDoc, Book } from '../types';
+import { Character, Location, Faction, MarkdownDoc, Book, CustomCategory, CustomEntry } from '../types';
 import { useLoreContext } from '../context/LoreContext';
 import { useTheme } from '../context/ThemeContext';
+import { PRELOADED_ICONS } from './CreateCategoryModal';
 import {
   Users,
   MapPin,
@@ -11,13 +12,18 @@ import {
   Plus,
   Layers,
   Feather,
-  Trash2
+  Trash2,
+  Gem,
+  ChevronRight,
+  Sparkles
 } from 'lucide-react';
 
 interface LeftSidebarProps {
   characters: Character[];
   locations: Location[];
   factions: Faction[];
+  customCategories?: CustomCategory[];
+  customEntries?: CustomEntry[];
   docs: MarkdownDoc[];
   books: Book[];
   selectedBookId: string;
@@ -25,8 +31,10 @@ interface LeftSidebarProps {
   onSelectDoc: (id: string) => void;
   onNewDoc: () => void;
   onDeleteDoc?: (id: string) => void;
-  onOpenEntityDetail: (type: 'character' | 'location' | 'faction', id: string) => void;
-  onCreateEntity: (type: 'character' | 'location' | 'faction') => void;
+  onOpenEntityDetail: (type: 'character' | 'location' | 'faction' | 'misc' | 'custom', id: string) => void;
+  onCreateEntity: (type: 'character' | 'location' | 'faction' | 'misc' | 'category') => void;
+  onDeleteCustomCategory?: (categoryId: string) => void;
+  onDeleteCustomEntry?: (entryId: string) => void;
   isOpen: boolean;
   onToggleMatrixView?: () => void;
 }
@@ -35,6 +43,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   characters,
   locations,
   factions,
+  customCategories = [],
+  customEntries = [],
   docs,
   books,
   selectedBookId,
@@ -44,12 +54,15 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   onDeleteDoc,
   onOpenEntityDetail,
   onCreateEntity,
+  onDeleteCustomCategory,
+  onDeleteCustomEntry,
   isOpen,
   onToggleMatrixView
 }) => {
-  const { theme } = useTheme();
+  const { theme, getAccentClasses } = useTheme();
+  const accentClasses = getAccentClasses();
   const { toggleMatrixView } = useLoreContext();
-  const [activeTab, setActiveTab] = useState<'docs' | 'characters' | 'locations' | 'factions'>('docs');
+  const [activeTab, setActiveTab] = useState<string>('docs');
   const [searchTerm, setSearchTerm] = useState<string>('');
 
   if (!isOpen) return null;
@@ -90,6 +103,22 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     );
   });
 
+  const filteredMiscEntries = customEntries.filter(
+    (e) => e.categoryId === 'misc' && (e.title.toLowerCase().includes(searchTerm.toLowerCase()) || e.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const getCustomCategoryEntries = (catId: string) => {
+    return customEntries.filter(
+      (e) => e.categoryId === catId && (e.title.toLowerCase().includes(searchTerm.toLowerCase()) || e.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  };
+
+  const renderIcon = (iconName: string) => {
+    const found = PRELOADED_ICONS.find((item) => item.name === iconName);
+    const IconComp = found ? found.icon : Gem;
+    return <IconComp className="w-3.5 h-3.5" />;
+  };
+
   const isSepia = theme === 'sepia';
   const isLight = theme === 'light';
 
@@ -111,16 +140,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     ? 'bg-[#ffffff] border-indigo-500 font-bold shadow-sm'
     : 'bg-[#18181b] border-indigo-500 font-bold shadow-sm';
 
-  const accentColor = isSepia ? 'text-[#964b00]' : isLight ? 'text-indigo-600' : 'text-indigo-400';
-
   return (
     <aside className={`w-64 md:w-72 ${sidebarBg} border-r flex flex-col h-full shrink-0 z-20 select-none`}>
       {/* Sidebar Header */}
       <div className={`p-3 border-b space-y-2.5 ${sidebarBg}`}>
         <div className="flex items-center justify-between gap-1">
           <span className="text-[10px] uppercase font-bold tracking-wider opacity-60 flex items-center gap-1.5 shrink-0">
-            <Feather className={`w-3.5 h-3.5 ${accentColor}`} />
-            Manuscript & Worldbuilder
+            <Feather className={`w-3.5 h-3.5 ${accentClasses.text}`} />
+            Books & Worldbuilder
           </span>
 
           <button
@@ -131,19 +158,19 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             className={`hidden md:flex items-center gap-1 text-[10px] ${cardBg} border px-2 py-0.5 rounded transition-all font-semibold shadow-sm`}
             title="Open Worldbuilder Matrix Canvas"
           >
-            <Layers className={`w-3 h-3 ${accentColor}`} />
+            <Layers className={`w-3 h-3 ${accentClasses.text}`} />
             <span>Matrix</span>
           </button>
         </div>
 
-        {/* Tab Selection */}
-        <div className={`grid grid-cols-4 ${cardBg} p-0.5 rounded border text-xs`}>
+        {/* Tab Selection Row */}
+        <div className={`flex items-center gap-1 ${cardBg} p-0.5 rounded border text-xs overflow-x-auto no-scrollbar`}>
           <button
             onClick={() => setActiveTab('docs')}
-            className={`py-1 px-1 rounded flex flex-col items-center gap-0.5 font-medium transition-all ${
-              activeTab === 'docs' ? `${activeCardBg} ${accentColor}` : 'opacity-60 hover:opacity-100'
+            className={`py-1 px-2 rounded flex items-center gap-1 font-medium transition-all shrink-0 ${
+              activeTab === 'docs' ? `${activeCardBg} ${accentClasses.text}` : 'opacity-60 hover:opacity-100'
             }`}
-            title="Manuscript Chapters & Notes"
+            title="Chapters"
           >
             <FileText className="w-3.5 h-3.5" />
             <span className="text-[10px] font-bold">Chapters</span>
@@ -151,10 +178,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
           <button
             onClick={() => setActiveTab('characters')}
-            className={`py-1 px-1 rounded flex flex-col items-center gap-0.5 font-medium transition-all ${
-              activeTab === 'characters' ? `${activeCardBg} ${accentColor}` : 'opacity-60 hover:opacity-100'
+            className={`py-1 px-2 rounded flex items-center gap-1 font-medium transition-all shrink-0 ${
+              activeTab === 'characters' ? `${activeCardBg} ${accentClasses.text}` : 'opacity-60 hover:opacity-100'
             }`}
-            title="Worldbuilder Characters"
+            title="People"
           >
             <Users className="w-3.5 h-3.5" />
             <span className="text-[10px]">People</span>
@@ -162,10 +189,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
           <button
             onClick={() => setActiveTab('locations')}
-            className={`py-1 px-1 rounded flex flex-col items-center gap-0.5 font-medium transition-all ${
-              activeTab === 'locations' ? `${activeCardBg} ${accentColor}` : 'opacity-60 hover:opacity-100'
+            className={`py-1 px-2 rounded flex items-center gap-1 font-medium transition-all shrink-0 ${
+              activeTab === 'locations' ? `${activeCardBg} ${accentClasses.text}` : 'opacity-60 hover:opacity-100'
             }`}
-            title="Worldbuilder Places & Settings"
+            title="Places"
           >
             <MapPin className="w-3.5 h-3.5" />
             <span className="text-[10px]">Places</span>
@@ -173,14 +200,40 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
           <button
             onClick={() => setActiveTab('factions')}
-            className={`py-1 px-1 rounded flex flex-col items-center gap-0.5 font-medium transition-all ${
-              activeTab === 'factions' ? `${activeCardBg} ${accentColor}` : 'opacity-60 hover:opacity-100'
+            className={`py-1 px-2 rounded flex items-center gap-1 font-medium transition-all shrink-0 ${
+              activeTab === 'factions' ? `${activeCardBg} ${accentClasses.text}` : 'opacity-60 hover:opacity-100'
             }`}
-            title="Worldbuilder Factions & Groups"
+            title="Factions"
           >
             <Shield className="w-3.5 h-3.5" />
             <span className="text-[10px]">Factions</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('misc')}
+            className={`py-1 px-2 rounded flex items-center gap-1 font-medium transition-all shrink-0 ${
+              activeTab === 'misc' ? `${activeCardBg} ${accentClasses.text}` : 'opacity-60 hover:opacity-100'
+            }`}
+            title="Misc World Entries"
+          >
+            <Gem className="w-3.5 h-3.5 text-amber-500" />
+            <span className="text-[10px]">Misc</span>
+          </button>
+
+          {/* Dynamic Custom Categories */}
+          {customCategories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setActiveTab(cat.id)}
+              className={`py-1 px-2 rounded flex items-center gap-1 font-medium transition-all shrink-0 ${
+                activeTab === cat.id ? `${activeCardBg} ${accentClasses.text}` : 'opacity-60 hover:opacity-100'
+              }`}
+              title={cat.name}
+            >
+              {renderIcon(cat.iconName)}
+              <span className="text-[10px]">{cat.name}</span>
+            </button>
+          ))}
         </div>
 
         {/* Search Input */}
@@ -205,13 +258,17 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             ? `Characters (${filteredCharacters.length})`
             : activeTab === 'locations'
             ? `Places (${filteredLocations.length})`
-            : `Factions (${filteredFactions.length})`}
+            : activeTab === 'factions'
+            ? `Factions (${filteredFactions.length})`
+            : activeTab === 'misc'
+            ? `Misc (${filteredMiscEntries.length})`
+            : `${customCategories.find((c) => c.id === activeTab)?.name || 'Custom'} (${getCustomCategoryEntries(activeTab).length})`}
         </span>
 
         {activeTab === 'docs' && (
           <button
             onClick={onNewDoc}
-            className="flex items-center gap-1 text-[11px] bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-0.5 rounded transition-all shadow"
+            className={`flex items-center gap-1 text-[11px] ${accentClasses.bg} text-white px-2 py-0.5 rounded transition-all shadow`}
           >
             <Plus className="w-3 h-3" />
             <span>Chapter</span>
@@ -220,7 +277,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         {activeTab === 'characters' && (
           <button
             onClick={() => onCreateEntity('character')}
-            className="flex items-center gap-1 text-[11px] bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-0.5 rounded transition-all shadow"
+            className={`flex items-center gap-1 text-[11px] ${accentClasses.bg} text-white px-2 py-0.5 rounded transition-all shadow`}
           >
             <Plus className="w-3 h-3" />
             <span>Person</span>
@@ -229,7 +286,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         {activeTab === 'locations' && (
           <button
             onClick={() => onCreateEntity('location')}
-            className="flex items-center gap-1 text-[11px] bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-0.5 rounded transition-all shadow"
+            className={`flex items-center gap-1 text-[11px] ${accentClasses.bg} text-white px-2 py-0.5 rounded transition-all shadow`}
           >
             <Plus className="w-3 h-3" />
             <span>Place</span>
@@ -238,21 +295,39 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
         {activeTab === 'factions' && (
           <button
             onClick={() => onCreateEntity('faction')}
-            className="flex items-center gap-1 text-[11px] bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-0.5 rounded transition-all shadow"
+            className={`flex items-center gap-1 text-[11px] ${accentClasses.bg} text-white px-2 py-0.5 rounded transition-all shadow`}
           >
             <Plus className="w-3 h-3" />
             <span>Faction</span>
           </button>
         )}
+        {(activeTab === 'misc' || activeTab.startsWith('cat-')) && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => onCreateEntity('misc')}
+              className={`flex items-center gap-1 text-[11px] ${accentClasses.bg} text-white px-2 py-0.5 rounded transition-all shadow`}
+            >
+              <Plus className="w-3 h-3" />
+              <span>Entry</span>
+            </button>
+            <button
+              onClick={() => onCreateEntity('category')}
+              className={`p-0.5 text-[11px] ${cardBg} border rounded opacity-80 hover:opacity-100`}
+              title="Create Custom Category"
+            >
+              <Plus className="w-3 h-3 text-indigo-500" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Tab Content List */}
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-        {/* MANUSCRIPT CHAPTERS */}
+        {/* CHAPTERS */}
         {activeTab === 'docs' && (
           <>
             {filteredDocs.length === 0 ? (
-              <div className="p-4 text-center text-xs opacity-60">No chapters found. Click + Chapter to start writing!</div>
+              <div className="p-4 text-center text-xs opacity-60">No chapters found. Click + Chapter to write!</div>
             ) : (
               filteredDocs.map((d) => (
                 <div
@@ -265,7 +340,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   }`}
                 >
                   <div className="flex items-start gap-2 min-w-0 flex-1">
-                    <FileText className={`w-4 h-4 shrink-0 mt-0.5 ${activeDocId === d.id ? accentColor : 'opacity-60'}`} />
+                    <FileText className={`w-4 h-4 shrink-0 mt-0.5 ${activeDocId === d.id ? accentClasses.text : 'opacity-60'}`} />
                     <div className="flex-1 min-w-0">
                       <h4 className="font-semibold text-xs truncate">{d.title}</h4>
                       <div className="flex items-center justify-between mt-1 text-[10px] opacity-70">
@@ -295,7 +370,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           </>
         )}
 
-        {/* WORLDBUILDER CHARACTERS */}
+        {/* CHARACTERS */}
         {activeTab === 'characters' && (
           <>
             {filteredCharacters.map((c) => (
@@ -313,7 +388,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                       className="w-8 h-8 rounded object-cover shrink-0 border"
                     />
                   ) : (
-                    <div className={`w-8 h-8 rounded ${cardBg} border flex items-center justify-center ${accentColor} font-bold shrink-0 text-xs`}>
+                    <div className={`w-8 h-8 rounded ${cardBg} border flex items-center justify-center ${accentClasses.text} font-bold shrink-0 text-xs`}>
                       {c.name.slice(0, 2).toUpperCase()}
                     </div>
                   )}
@@ -330,7 +405,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           </>
         )}
 
-        {/* WORLDBUILDER LOCATIONS */}
+        {/* LOCATIONS */}
         {activeTab === 'locations' && (
           <>
             {filteredLocations.map((l) => (
@@ -353,7 +428,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
           </>
         )}
 
-        {/* WORLDBUILDER FACTIONS */}
+        {/* FACTIONS */}
         {activeTab === 'factions' && (
           <>
             {filteredFactions.map((f) => (
@@ -371,6 +446,37 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                   </h4>
                   <p className="text-[10px] opacity-70 truncate font-mono">{f.allegiance}</p>
                 </div>
+              </div>
+            ))}
+          </>
+        )}
+
+        {/* MISC & CUSTOM CATEGORY ENTRIES */}
+        {(activeTab === 'misc' || activeTab.startsWith('cat-')) && (
+          <>
+            {(activeTab === 'misc' ? filteredMiscEntries : getCustomCategoryEntries(activeTab)).map((entry) => (
+              <div
+                key={entry.id}
+                onClick={() => onOpenEntityDetail('misc', entry.id)}
+                className={`group p-2.5 ${cardBg} border rounded-lg transition-all cursor-pointer flex items-start justify-between gap-2 hover:border-amber-500/50`}
+              >
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-xs truncate group-hover:text-amber-500">{entry.title}</h4>
+                  <p className="text-[10px] opacity-70 line-clamp-2 mt-0.5">{entry.description}</p>
+                </div>
+
+                {onDeleteCustomEntry && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteCustomEntry(entry.id);
+                    }}
+                    className="p-1 rounded opacity-0 group-hover:opacity-100 hover:text-rose-500 transition-opacity"
+                    title="Delete Entry"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
             ))}
           </>

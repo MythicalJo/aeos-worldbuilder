@@ -1,7 +1,7 @@
 {
-  "short_name": "AeosWorldbuilder",
-  "name": "Aeos Worldbuilding Bible PWA",
-  "description": "Multi-book fantasy series worldbuilding bible with entity databases, markdown editor, and interactive timeline.",
+  "short_name": "AeosStorybuilder",
+  "name": "aeos - storybuilder",
+  "description": "aeos - storybuilder: modern book writing application and story management workspace.",
   "icons": [
     {
       "src": "icon-192.svg",
@@ -18,7 +18,7 @@
   ],
   "start_url": "./",
   "background_color": "#09090b",
-  "theme_color": "#4f46e5",
+  "theme_color": "#6366f1",
   "display": "standalone",
   "orientation": "any",
   "categories": ["books", "productivity", "utilities", "entertainment"]

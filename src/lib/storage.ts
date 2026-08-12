@@ -1,5 +1,17 @@
-import { Book, Character, Location, Faction, TimelineEvent, MarkdownDoc, WorldSettings } from '../types';
-import { initialWorldSettings, initialBooks, initialFactions, initialCharacters, initialLocations, initialTimelineEvents, initialMarkdownDocs } from '../data/seedData';
+import { Book, Character, Location, Faction, TimelineEvent, MarkdownDoc, WorldSettings, Project, CustomCategory, CustomEntry } from '../types';
+import {
+  initialWorldSettings,
+  initialBooks,
+  initialFactions,
+  initialCharacters,
+  initialLocations,
+  initialTimelineEvents,
+  initialMarkdownDocs,
+  initialProjects,
+  initialCustomCategories,
+  initialCustomEntries
+} from '../data/seedData';
+
 import {
   idbSaveSettings,
   idbSaveBooks,
@@ -16,24 +28,30 @@ import {
 } from './idbStorage';
 
 const STORAGE_KEYS = {
-  SETTINGS: 'lorecraft_settings_v1',
-  BOOKS: 'lorecraft_books_v1',
-  FACTIONS: 'lorecraft_factions_v1',
-  CHARACTERS: 'lorecraft_characters_v1',
-  LOCATIONS: 'lorecraft_locations_v1',
-  TIMELINE: 'lorecraft_timeline_v1',
-  DOCS: 'lorecraft_docs_v1',
-  ACTIVE_DOC_ID: 'lorecraft_active_doc_id_v1'
+  SETTINGS: 'lorecraft_settings_v2',
+  PROJECTS: 'lorecraft_projects_v2',
+  BOOKS: 'lorecraft_books_v2',
+  FACTIONS: 'lorecraft_factions_v2',
+  CHARACTERS: 'lorecraft_characters_v2',
+  LOCATIONS: 'lorecraft_locations_v2',
+  CUSTOM_CATEGORIES: 'lorecraft_custom_categories_v2',
+  CUSTOM_ENTRIES: 'lorecraft_custom_entries_v2',
+  TIMELINE: 'lorecraft_timeline_v2',
+  DOCS: 'lorecraft_docs_v2',
+  ACTIVE_DOC_ID: 'lorecraft_active_doc_id_v2'
 };
 
 export interface DatabaseDump {
   version: string;
   exportedAt: string;
   settings: WorldSettings;
+  projects?: Project[];
   books: Book[];
   factions: Faction[];
   characters: Character[];
   locations: Location[];
+  customCategories?: CustomCategory[];
+  customEntries?: CustomEntry[];
   timeline: TimelineEvent[];
   docs: MarkdownDoc[];
 }
@@ -52,6 +70,51 @@ export function saveSettings(settings: WorldSettings): void {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
   } catch {}
   idbSaveSettings(settings).catch((err) => console.error('IndexedDB saveSettings error:', err));
+}
+
+export function loadProjects(): Project[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.PROJECTS);
+    return raw ? JSON.parse(raw) : initialProjects;
+  } catch {
+    return initialProjects;
+  }
+}
+
+export function saveProjects(projects: Project[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(projects));
+  } catch {}
+}
+
+export function loadCustomCategories(): CustomCategory[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.CUSTOM_CATEGORIES);
+    return raw ? JSON.parse(raw) : initialCustomCategories;
+  } catch {
+    return initialCustomCategories;
+  }
+}
+
+export function saveCustomCategories(categories: CustomCategory[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.CUSTOM_CATEGORIES, JSON.stringify(categories));
+  } catch {}
+}
+
+export function loadCustomEntries(): CustomEntry[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.CUSTOM_ENTRIES);
+    return raw ? JSON.parse(raw) : initialCustomEntries;
+  } catch {
+    return initialCustomEntries;
+  }
+}
+
+export function saveCustomEntries(entries: CustomEntry[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.CUSTOM_ENTRIES, JSON.stringify(entries));
+  } catch {}
 }
 
 export function loadBooks(): Book[] {
@@ -167,13 +230,16 @@ export function saveActiveDocId(id: string): void {
 
 export function exportFullDatabase(): DatabaseDump {
   return {
-    version: '2.0.0',
+    version: '3.0.0',
     exportedAt: new Date().toISOString(),
     settings: loadSettings(),
+    projects: loadProjects(),
     books: loadBooks(),
     factions: loadFactions(),
     characters: loadCharacters(),
     locations: loadLocations(),
+    customCategories: loadCustomCategories(),
+    customEntries: loadCustomEntries(),
     timeline: loadTimeline(),
     docs: loadDocs()
   };
@@ -182,10 +248,13 @@ export function exportFullDatabase(): DatabaseDump {
 export function importFullDatabase(dump: DatabaseDump): boolean {
   try {
     if (dump.settings) saveSettings(dump.settings);
+    if (dump.projects) saveProjects(dump.projects);
     if (dump.books) saveBooks(dump.books);
     if (dump.factions) saveFactions(dump.factions);
     if (dump.characters) saveCharacters(dump.characters);
     if (dump.locations) saveLocations(dump.locations);
+    if (dump.customCategories) saveCustomCategories(dump.customCategories);
+    if (dump.customEntries) saveCustomEntries(dump.customEntries);
     if (dump.timeline) saveTimeline(dump.timeline);
     if (dump.docs) saveDocs(dump.docs);
     idbImportDatabase(dump).catch((err) => console.error('IndexedDB import error:', err));
@@ -196,43 +265,21 @@ export function importFullDatabase(dump: DatabaseDump): boolean {
   }
 }
 
-export function exportWorldBible(): void {
-  const dump = exportFullDatabase();
-  const jsonString = JSON.stringify(dump, null, 2);
-  const blob = new Blob([jsonString], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `world_bible_backup_${new Date().toISOString().split('T')[0]}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-export function importWorldBible(jsonText: string): boolean {
-  try {
-    const parsed = JSON.parse(jsonText);
-    return importFullDatabase(parsed);
-  } catch {
-    return false;
-  }
-}
-
 export function resetToDefaults(): void {
   try {
     localStorage.removeItem(STORAGE_KEYS.SETTINGS);
+    localStorage.removeItem(STORAGE_KEYS.PROJECTS);
     localStorage.removeItem(STORAGE_KEYS.BOOKS);
     localStorage.removeItem(STORAGE_KEYS.FACTIONS);
     localStorage.removeItem(STORAGE_KEYS.CHARACTERS);
     localStorage.removeItem(STORAGE_KEYS.LOCATIONS);
+    localStorage.removeItem(STORAGE_KEYS.CUSTOM_CATEGORIES);
+    localStorage.removeItem(STORAGE_KEYS.CUSTOM_ENTRIES);
     localStorage.removeItem(STORAGE_KEYS.TIMELINE);
     localStorage.removeItem(STORAGE_KEYS.DOCS);
     localStorage.removeItem(STORAGE_KEYS.ACTIVE_DOC_ID);
   } catch {}
   idbResetToDefaults().catch((err) => console.error('IndexedDB reset error:', err));
-}
-
-export function resetToDefaultWorld(): void {
-  resetToDefaults();
 }
 
 export { idbLoadAllData, idbExportDatabase, idbImportDatabase, idbResetToDefaults };
