@@ -1,24 +1,24 @@
 {
-  "short_name": "LoreCraft",
-  "name": "Fantasy Worldbuilding Bible PWA",
+  "short_name": "AeosWorldbuilder",
+  "name": "Aeos Worldbuilding Bible PWA",
   "description": "Multi-book fantasy series worldbuilding bible with entity databases, markdown editor, and interactive timeline.",
   "icons": [
     {
-      "src": "/icon-192.svg",
+      "src": "icon-192.svg",
       "type": "image/svg+xml",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512.svg",
+      "src": "icon-512.svg",
       "type": "image/svg+xml",
       "sizes": "512x512",
       "purpose": "any maskable"
     }
   ],
-  "start_url": "/",
-  "background_color": "#090d16",
-  "theme_color": "#1e1b4b",
+  "start_url": "./",
+  "background_color": "#09090b",
+  "theme_color": "#4f46e5",
   "display": "standalone",
   "orientation": "any",
   "categories": ["books", "productivity", "utilities", "entertainment"]
